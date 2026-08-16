@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { Container, Box, Paper, Typography, Button } from '@mui/material';
+import { Container, Box, Paper, Typography, Button, CircularProgress } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import AddIcon from '@mui/icons-material/Add';
 
@@ -17,15 +17,19 @@ import { getAppTheme } from './theme/theme';
 import {
   loadCurrentUserFromStorage,
   saveCurrentUserToStorage,
-  loadUserTasks,
-  saveUserTasks,
   loadThemeFromStorage,
   saveThemeToStorage
 } from './utils/storage';
+import {
+  apiGetTasks,
+  apiSaveTask,
+  apiDeleteTask
+} from './services/api';
 
 export function App() {
   const [user, setUser] = useState(() => loadCurrentUserFromStorage());
-  const [tasks, setTasks] = useState(() => (user ? loadUserTasks(user.id) : []));
+  const [tasks, setTasks] = useState([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
   const [themeMode, setThemeMode] = useState(() => loadThemeFromStorage());
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,27 +46,31 @@ export function App() {
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [taskToDeleteId, setTaskToDeleteId] = useState(null);
 
-  // Generate dynamic MUI Theme object
   const muiTheme = useMemo(() => getAppTheme(themeMode), [themeMode]);
 
   useEffect(() => {
     saveThemeToStorage(themeMode);
   }, [themeMode]);
 
+  // Load User Tasks from SQL Server
   useEffect(() => {
     saveCurrentUserToStorage(user);
     if (user) {
-      setTasks(loadUserTasks(user.id));
+      setLoadingTasks(true);
+      apiGetTasks(user.id)
+        .then((fetchedTasks) => {
+          setTasks(fetchedTasks || []);
+        })
+        .catch((err) => {
+          console.error('Failed to load tasks from SQL backend:', err);
+        })
+        .finally(() => {
+          setLoadingTasks(false);
+        });
     } else {
       setTasks([]);
     }
   }, [user]);
-
-  useEffect(() => {
-    if (user) {
-      saveUserTasks(user.id, tasks);
-    }
-  }, [tasks, user]);
 
   const handleToggleTheme = () => {
     setThemeMode((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -84,55 +92,90 @@ export function App() {
     setIsAuthModalOpen(true);
   };
 
-  const handleSaveTask = (taskData) => {
+  // Save / Update Task to SQL
+  const handleSaveTask = async (taskData) => {
     if (!user) {
       setIsAuthModalOpen(true);
       return;
     }
 
-    setTasks((prevTasks) => {
-      const exists = prevTasks.some((t) => t.id === taskData.id);
-      if (exists) {
-        return prevTasks.map((t) => (t.id === taskData.id ? taskData : t));
-      } else {
-        return [taskData, ...prevTasks];
-      }
-    });
+    try {
+      const savedTask = await apiSaveTask(user.id, taskData);
+      setTasks((prevTasks) => {
+        const exists = prevTasks.some((t) => t.id === savedTask.id);
+        if (exists) {
+          return prevTasks.map((t) => (t.id === savedTask.id ? savedTask : t));
+        } else {
+          return [savedTask, ...prevTasks];
+        }
+      });
+    } catch (err) {
+      alert('Failed to save task to SQL server: ' + err.message);
+    }
   };
 
-  const handleToggleComplete = (taskId) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t))
-    );
+  const handleToggleComplete = async (taskId) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target || !user) return;
+
+    const updated = { ...target, completed: !target.completed };
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+
+    try {
+      await apiSaveTask(user.id, updated);
+    } catch (err) {
+      console.error('Failed to update task completion in SQL:', err);
+    }
   };
 
-  const handleToggleStar = (taskId) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, starred: !t.starred } : t))
-    );
+  const handleToggleStar = async (taskId) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target || !user) return;
+
+    const updated = { ...target, starred: !target.starred };
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+
+    try {
+      await apiSaveTask(user.id, updated);
+    } catch (err) {
+      console.error('Failed to update star in SQL:', err);
+    }
   };
 
   const handleDeleteTaskRequest = (taskId) => {
     setTaskToDeleteId(taskId);
   };
 
-  const handleConfirmDeleteTask = () => {
-    if (taskToDeleteId) {
-      setTasks((prev) => prev.filter((t) => t.id !== taskToDeleteId));
+  const handleConfirmDeleteTask = async () => {
+    if (taskToDeleteId && user) {
+      const idToDelete = taskToDeleteId;
       setTaskToDeleteId(null);
+      setTasks((prev) => prev.filter((t) => t.id !== idToDelete));
+
+      try {
+        await apiDeleteTask(user.id, idToDelete);
+      } catch (err) {
+        console.error('Failed to delete task from SQL server:', err);
+      }
     }
   };
 
-  const handleToggleSubtask = (taskId, subtaskId) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== taskId) return t;
-        const updatedSubtasks = (t.subtasks || []).map((s) =>
-          s.id === subtaskId ? { ...s, completed: !s.completed } : s
-        );
-        return { ...t, subtasks: updatedSubtasks };
-      })
+  const handleToggleSubtask = async (taskId, subtaskId) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target || !user) return;
+
+    const updatedSubtasks = (target.subtasks || []).map((s) =>
+      s.id === subtaskId ? { ...s, completed: !s.completed } : s
     );
+    const updated = { ...target, subtasks: updatedSubtasks };
+
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+
+    try {
+      await apiSaveTask(user.id, updated);
+    } catch (err) {
+      console.error('Failed to update subtask in SQL:', err);
+    }
   };
 
   const handleStartTimerForTask = (task) => {
@@ -155,14 +198,18 @@ export function App() {
     downloadAnchor.remove();
   };
 
-  const handleImportData = (file) => {
+  const handleImportData = async (file) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const importedTasks = JSON.parse(e.target.result);
-        if (Array.isArray(importedTasks)) {
-          setTasks(importedTasks);
-          alert('Tasks imported successfully!');
+        if (Array.isArray(importedTasks) && user) {
+          for (const t of importedTasks) {
+            await apiSaveTask(user.id, t);
+          }
+          const updated = await apiGetTasks(user.id);
+          setTasks(updated);
+          alert('Tasks imported successfully into SQL database!');
         } else {
           alert('Invalid file format: JSON must be an array of tasks.');
         }
@@ -271,7 +318,11 @@ export function App() {
             categories={categories}
           />
 
-          {filteredTasks.length > 0 ? (
+          {loadingTasks ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
+              <CircularProgress color="primary" />
+            </Box>
+          ) : filteredTasks.length > 0 ? (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
               {filteredTasks.map((task) => (
                 <TaskCard

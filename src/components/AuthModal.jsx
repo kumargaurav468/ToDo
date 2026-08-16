@@ -11,13 +11,15 @@ import {
   Box,
   Typography,
   IconButton,
-  Divider
+  Divider,
+  CircularProgress
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LoginIcon from '@mui/icons-material/Login';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import { loginUser, registerUser, DEMO_USER } from '../utils/storage';
+import { apiLogin, apiRegister } from '../services/api';
+import { DEMO_USER } from '../utils/storage';
 
 export const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -25,44 +27,59 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
       if (isSignUp) {
         if (!name.trim() || !email.trim() || !password) {
           setError('Please fill in all fields.');
+          setLoading(false);
           return;
         }
-        const user = registerUser({ name: name.trim(), email: email.trim(), password });
+        const user = await apiRegister(name.trim(), email.trim(), password);
         onAuthSuccess(user);
       } else {
         if (!email.trim() || !password) {
           setError('Please enter your email and password.');
+          setLoading(false);
           return;
         }
-        const user = loginUser(email.trim(), password);
+        const user = await apiLogin(email.trim(), password);
         onAuthSuccess(user);
       }
       onClose();
     } catch (err) {
       setError(err.message || 'Authentication failed.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDemoLogin = () => {
+  const handleDemoLogin = async () => {
     setError('');
+    setLoading(true);
     try {
-      const user = loginUser(DEMO_USER.email, DEMO_USER.password);
+      const user = await apiLogin(DEMO_USER.email, DEMO_USER.password);
       onAuthSuccess(user);
       onClose();
-    } catch {
-      onAuthSuccess(DEMO_USER);
-      onClose();
+    } catch (err) {
+      // Fallback if demo user needs auto-register
+      try {
+        const user = await apiRegister(DEMO_USER.name, DEMO_USER.email, DEMO_USER.password);
+        onAuthSuccess(user);
+        onClose();
+      } catch (regErr) {
+        setError(regErr.message || 'Demo login failed');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,6 +136,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
               onChange={(e) => setName(e.target.value)}
               fullWidth
               required
+              disabled={loading}
             />
           )}
 
@@ -130,6 +148,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
             onChange={(e) => setEmail(e.target.value)}
             fullWidth
             required
+            disabled={loading}
           />
 
           <TextField
@@ -140,6 +159,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
             onChange={(e) => setPassword(e.target.value)}
             fullWidth
             required
+            disabled={loading}
           />
 
           <Button
@@ -147,8 +167,9 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
             variant="contained"
             color="primary"
             size="large"
-            startIcon={isSignUp ? <PersonAddIcon /> : <LoginIcon />}
+            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : isSignUp ? <PersonAddIcon /> : <LoginIcon />}
             fullWidth
+            disabled={loading}
             sx={{ mt: 1 }}
           >
             {isSignUp ? 'Create Free Account' : 'Sign In'}
@@ -167,6 +188,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
             startIcon={<AutoAwesomeIcon />}
             onClick={handleDemoLogin}
             fullWidth
+            disabled={loading}
           >
             Quick Demo Login
           </Button>
