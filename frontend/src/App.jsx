@@ -13,6 +13,7 @@ import { TaskModal } from './components/TaskModal';
 import { FocusTimerModal } from './components/FocusTimerModal';
 import { AuthModal } from './components/AuthModal';
 import { ConfirmModal } from './components/ConfirmModal';
+import { AlertDialog } from './components/AlertDialog';
 import { getAppTheme } from './theme/theme';
 import {
   loadCurrentUserFromStorage,
@@ -45,6 +46,22 @@ export function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [taskToDeleteId, setTaskToDeleteId] = useState(null);
+
+  // Alert Dialog State
+  const [alertDialog, setAlertDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
+
+  const showAlert = (title, message, type = 'info') => {
+    setAlertDialog({ isOpen: true, title, message, type });
+  };
+
+  const closeAlert = () => {
+    setAlertDialog((prev) => ({ ...prev, isOpen: false }));
+  };
 
   const muiTheme = useMemo(() => getAppTheme(themeMode), [themeMode]);
 
@@ -110,7 +127,7 @@ export function App() {
         }
       });
     } catch (err) {
-      alert('Failed to save task to SQL server: ' + err.message);
+      showAlert('Save Error', 'Failed to save task to SQL server: ' + err.message, 'error');
     }
   };
 
@@ -209,12 +226,12 @@ export function App() {
           }
           const updated = await apiGetTasks(user.id);
           setTasks(updated);
-          alert('Tasks imported successfully into SQL database!');
+          showAlert('Import Successful', 'Tasks imported successfully into SQL database!', 'success');
         } else {
-          alert('Invalid file format: JSON must be an array of tasks.');
+          showAlert('Import Failed', 'Invalid file format: JSON must be an array of tasks.', 'error');
         }
       } catch (err) {
-        alert('Failed to parse JSON file.');
+        showAlert('Import Error', 'Failed to parse JSON file.', 'error');
       }
     };
     reader.readAsText(file);
@@ -448,6 +465,14 @@ export function App() {
           variant="danger"
           onConfirm={handleConfirmDeleteTask}
           onCancel={() => setTaskToDeleteId(null)}
+        />
+
+        <AlertDialog
+          isOpen={alertDialog.isOpen}
+          title={alertDialog.title}
+          message={alertDialog.message}
+          type={alertDialog.type}
+          onClose={closeAlert}
         />
       </Box>
     </ThemeProvider>
