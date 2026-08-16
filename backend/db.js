@@ -49,22 +49,8 @@ export const initDatabase = () => {
     );
   `);
 
-  // Seed Demo User if not exists
-  const checkUserStmt = db.prepare('SELECT * FROM users WHERE email = ?');
-  const demoUser = checkUserStmt.get('demo@taskflow.io');
-  if (!demoUser) {
-    const insertUserStmt = db.prepare(`
-      INSERT INTO users (id, name, email, password, created_at)
-      VALUES (?, ?, ?, ?, ?)
-    `);
-    insertUserStmt.run(
-      'demo-user-1',
-      'Alex Morgan',
-      'demo@taskflow.io',
-      'password123',
-      new Date().toISOString()
-    );
-  }
+  // Delete any existing demo user
+  db.exec("DELETE FROM users WHERE email = 'demo@taskflow.io' OR id = 'demo-user-1';");
 
   console.log('SQL Database initialized successfully at', dbPath);
 };

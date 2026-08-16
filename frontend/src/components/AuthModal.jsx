@@ -11,15 +11,12 @@ import {
   Box,
   Typography,
   IconButton,
-  Divider,
   CircularProgress
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LoginIcon from '@mui/icons-material/Login';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { apiLogin, apiRegister } from '../services/api';
-import { DEMO_USER } from '../utils/storage';
 
 export const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -57,27 +54,6 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
       onClose();
     } catch (err) {
       setError(err.message || 'Authentication failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      const user = await apiLogin(DEMO_USER.email, DEMO_USER.password);
-      onAuthSuccess(user);
-      onClose();
-    } catch (err) {
-      // Fallback if demo user needs auto-register
-      try {
-        const user = await apiRegister(DEMO_USER.name, DEMO_USER.email, DEMO_USER.password);
-        onAuthSuccess(user);
-        onClose();
-      } catch (regErr) {
-        setError(regErr.message || 'Demo login failed');
-      }
     } finally {
       setLoading(false);
     }
@@ -173,24 +149,6 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
             sx={{ mt: 1 }}
           >
             {isSignUp ? 'Create Free Account' : 'Sign In'}
-          </Button>
-
-          <Divider sx={{ my: 1 }}>
-            <Typography variant="caption" color="text.secondary">
-              OR
-            </Typography>
-          </Divider>
-
-          <Button
-            variant="outlined"
-            color="secondary"
-            size="large"
-            startIcon={<AutoAwesomeIcon />}
-            onClick={handleDemoLogin}
-            fullWidth
-            disabled={loading}
-          >
-            Quick Demo Login
           </Button>
         </DialogContent>
       </form>
