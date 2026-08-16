@@ -1,5 +1,17 @@
 import React from 'react';
-import { AlertTriangle, LogOut, X } from 'lucide-react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+  Box,
+  IconButton
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import LogoutIcon from '@mui/icons-material/Logout';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 export const ConfirmModal = ({
   isOpen,
@@ -7,66 +19,58 @@ export const ConfirmModal = ({
   message = 'Do you really want to perform this action?',
   confirmText = 'Confirm',
   cancelText = 'Cancel',
-  variant = 'danger', // 'danger' | 'primary' | 'warning'
+  variant = 'danger',
   onConfirm,
   onCancel
 }) => {
   if (!isOpen) return null;
 
+  const isDanger = variant === 'danger';
+
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div
-        className="modal-card"
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '420px' }}
-      >
-        <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: variant === 'danger' ? 'var(--danger-bg)' : 'rgba(99, 102, 241, 0.15)',
-                color: variant === 'danger' ? 'var(--danger-color)' : 'var(--accent-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: variant === 'danger' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(99, 102, 241, 0.3)'
-              }}
-            >
-              {variant === 'danger' ? <LogOut size={20} /> : <AlertTriangle size={20} />}
-            </div>
-            <h2 className="modal-title">{title}</h2>
-          </div>
-          <button className="action-btn" onClick={onCancel}>
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="modal-body" style={{ padding: '20px 24px' }}>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5' }}>
-            {message}
-          </p>
-        </div>
-
-        <div className="modal-footer">
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>
-            {cancelText}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={onConfirm}
-            style={{
-              background: variant === 'danger' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : undefined,
-              boxShadow: variant === 'danger' ? '0 4px 16px rgba(239, 68, 68, 0.3)' : undefined
+    <Dialog open={isOpen} onClose={onCancel} fullWidth maxWidth="xs">
+      <DialogTitle sx={{ m: 0, p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 2.5,
+              bgcolor: isDanger ? 'error.light' : 'warning.light',
+              color: isDanger ? 'error.main' : 'warning.main',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: 0.9
             }}
           >
-            {confirmText}
-          </button>
-        </div>
-      </div>
-    </div>
+            {isDanger ? <LogoutIcon /> : <WarningAmberIcon />}
+          </Box>
+          <Box sx={{ fontWeight: 700, fontSize: '1.1rem' }}>{title}</Box>
+        </Box>
+        <IconButton onClick={onCancel} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent sx={{ p: 2.5, pt: 1 }}>
+        <DialogContentText color="text.secondary" sx={{ fontSize: '0.95rem' }}>
+          {message}
+        </DialogContentText>
+      </DialogContent>
+
+      <DialogActions sx={{ p: 2.5 }}>
+        <Button onClick={onCancel} color="inherit">
+          {cancelText}
+        </Button>
+        <Button
+          onClick={onConfirm}
+          variant="contained"
+          color={isDanger ? 'error' : 'primary'}
+        >
+          {confirmText}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };

@@ -1,5 +1,22 @@
 import React, { useState } from 'react';
-import { X, LogIn, UserPlus, Sparkles, Lock, Mail, User } from 'lucide-react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Tabs,
+  Tab,
+  TextField,
+  Button,
+  Alert,
+  Box,
+  Typography,
+  IconButton,
+  Divider
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import LoginIcon from '@mui/icons-material/Login';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { loginUser, registerUser, DEMO_USER } from '../utils/storage';
 
 export const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
@@ -50,157 +67,111 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-card"
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '440px' }}
-      >
-        <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'var(--accent-gradient)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white'
-              }}
-            >
-              {isSignUp ? <UserPlus size={20} /> : <LogIn size={20} />}
-            </div>
-            <h2 className="modal-title">
-              {isSignUp ? 'Create TaskFlow Account' : 'Welcome Back'}
-            </h2>
-          </div>
-          <button className="action-btn" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="xs">
+      <DialogTitle sx={{ m: 0, p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 2.5,
+              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white'
+            }}
+          >
+            {isSignUp ? <PersonAddIcon /> : <LoginIcon />}
+          </Box>
+          <Typography variant="h6" fontWeight={700}>
+            {isSignUp ? 'Create Account' : 'Welcome Back'}
+          </Typography>
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
 
-        {/* Tab Selector */}
-        <div style={{ padding: '16px 24px 0 24px' }}>
-          <div className="tab-group" style={{ width: '100%', display: 'flex' }}>
-            <button
-              type="button"
-              className={`tab-btn ${!isSignUp ? 'active' : ''}`}
-              onClick={() => {
-                setIsSignUp(false);
-                setError('');
-              }}
-              style={{ flex: 1, justifyContent: 'center' }}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              className={`tab-btn ${isSignUp ? 'active' : ''}`}
-              onClick={() => {
-                setIsSignUp(true);
-                setError('');
-              }}
-              style={{ flex: 1, justifyContent: 'center' }}
-            >
-              Create Account
-            </button>
-          </div>
-        </div>
+      <Box sx={{ px: 2.5, pt: 1 }}>
+        <Tabs
+          value={isSignUp ? 1 : 0}
+          onChange={(e, val) => {
+            setIsSignUp(val === 1);
+            setError('');
+          }}
+          variant="fullWidth"
+        >
+          <Tab label="Sign In" />
+          <Tab label="Create Account" />
+        </Tabs>
+      </Box>
 
-        <form onSubmit={handleSubmit} className="modal-body" style={{ paddingTop: '16px' }}>
-          {error && (
-            <div
-              style={{
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--danger-bg)',
-                color: 'var(--danger-color)',
-                fontSize: '0.85rem',
-                border: '1px solid rgba(239, 68, 68, 0.3)'
-              }}
-            >
-              {error}
-            </div>
-          )}
+      <form onSubmit={handleSubmit}>
+        <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {error && <Alert severity="error">{error}</Alert>}
 
           {isSignUp && (
-            <div className="form-group">
-              <label className="form-label">Full Name</label>
-              <div style={{ position: 'relative' }}>
-                <User size={16} style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--text-muted)' }} />
-                <input
-                  type="text"
-                  className="form-input"
-                  style={{ paddingLeft: '38px' }}
-                  placeholder="e.g. Alex Morgan"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
+            <TextField
+              label="Full Name"
+              placeholder="e.g. Alex Morgan"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              fullWidth
+              required
+            />
           )}
 
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <div style={{ position: 'relative' }}>
-              <Mail size={16} style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--text-muted)' }} />
-              <input
-                type="email"
-                className="form-input"
-                style={{ paddingLeft: '38px' }}
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-          </div>
+          <TextField
+            label="Email Address"
+            type="email"
+            placeholder="name@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            fullWidth
+            required
+          />
 
-          <div className="form-group">
-            <label className="form-label">Password</label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={16} style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--text-muted)' }} />
-              <input
-                type="password"
-                className="form-input"
-                style={{ paddingLeft: '38px' }}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-          </div>
+          <TextField
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            fullWidth
+            required
+          />
 
-          <button
+          <Button
             type="submit"
-            className="btn btn-primary"
-            style={{ width: '100%', justifyContent: 'center', marginTop: '8px', padding: '12px' }}
+            variant="contained"
+            color="primary"
+            size="large"
+            startIcon={isSignUp ? <PersonAddIcon /> : <LoginIcon />}
+            fullWidth
+            sx={{ mt: 1 }}
           >
-            {isSignUp ? <UserPlus size={18} /> : <LogIn size={18} />}
-            <span>{isSignUp ? 'Create Free Account' : 'Sign In'}</span>
-          </button>
+            {isSignUp ? 'Create Free Account' : 'Sign In'}
+          </Button>
 
-          <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0', gap: '10px' }}>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>or</span>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
-          </div>
+          <Divider sx={{ my: 1 }}>
+            <Typography variant="caption" color="text.secondary">
+              OR
+            </Typography>
+          </Divider>
 
-          <button
-            type="button"
-            className="btn btn-secondary"
+          <Button
+            variant="outlined"
+            color="secondary"
+            size="large"
+            startIcon={<AutoAwesomeIcon />}
             onClick={handleDemoLogin}
-            style={{ width: '100%', justifyContent: 'center', gap: '8px' }}
+            fullWidth
           >
-            <Sparkles size={16} color="var(--accent-primary)" />
-            <span>Quick Demo Login</span>
-          </button>
-        </form>
-      </div>
-    </div>
+            Quick Demo Login
+          </Button>
+        </DialogContent>
+      </form>
+    </Dialog>
   );
 };

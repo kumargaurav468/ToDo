@@ -1,5 +1,27 @@
 import React, { useState } from 'react';
-import { Check, Star, Trash2, Edit2, Calendar, ChevronDown, ChevronUp, Play, Flame, Zap, Coffee } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  Checkbox,
+  Typography,
+  Chip,
+  IconButton,
+  Tooltip,
+  Collapse,
+  Box,
+  Divider
+} from '@mui/material';
+import StarIcon from '@mui/icons-material/Star';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import BoltIcon from '@mui/icons-material/Bolt';
+import LocalCafeIcon from '@mui/icons-material/LocalCafe';
 import confetti from 'canvas-confetti';
 
 export const TaskCard = ({
@@ -26,26 +48,38 @@ export const TaskCard = ({
     onToggleComplete(task.id);
   };
 
-  const getPriorityBadge = (priority) => {
+  const getPriorityChip = (priority) => {
     switch (priority) {
       case 'high':
         return (
-          <span className="badge badge-priority-high">
-            <Flame size={12} /> High
-          </span>
+          <Chip
+            size="small"
+            icon={<LocalFireDepartmentIcon fontSize="small" />}
+            label="High"
+            color="error"
+            variant="outlined"
+          />
         );
       case 'medium':
         return (
-          <span className="badge badge-priority-medium">
-            <Zap size={12} /> Medium
-          </span>
+          <Chip
+            size="small"
+            icon={<BoltIcon fontSize="small" />}
+            label="Medium"
+            color="warning"
+            variant="outlined"
+          />
         );
       case 'low':
       default:
         return (
-          <span className="badge badge-priority-low">
-            <Coffee size={12} /> Low
-          </span>
+          <Chip
+            size="small"
+            icon={<LocalCafeIcon fontSize="small" />}
+            label="Low"
+            color="success"
+            variant="outlined"
+          />
         );
     }
   };
@@ -55,113 +89,149 @@ export const TaskCard = ({
   const isDueToday = !task.completed && task.dueDate === todayStr;
 
   const totalSubtasks = task.subtasks?.length || 0;
-  const completedSubtasks = task.subtasks?.filter(s => s.completed).length || 0;
+  const completedSubtasks = task.subtasks?.filter((s) => s.completed).length || 0;
 
   return (
-    <div className={`glass-panel task-card ${task.completed ? 'completed' : ''}`}>
-      <div className="task-main-row">
-        <button
-          className={`checkbox-btn ${task.completed ? 'checked' : ''}`}
-          onClick={handleCheckboxClick}
-          title={task.completed ? 'Mark incomplete' : 'Mark complete'}
-        >
-          {task.completed && <Check size={16} strokeWidth={3} />}
-        </button>
+    <Card
+      elevation={0}
+      sx={{
+        mb: 2,
+        opacity: task.completed ? 0.7 : 1,
+        transition: 'all 0.25s ease'
+      }}
+    >
+      <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+          <Checkbox
+            checked={task.completed}
+            onChange={handleCheckboxClick}
+            color="success"
+            sx={{ p: 0.5, mt: 0.25 }}
+          />
 
-        <div className="task-body">
-          <div className="task-header">
-            <h3 className="task-title">{task.title}</h3>
+          <Box sx={{ flex: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontSize: '1.05rem',
+                  fontWeight: 600,
+                  textDecoration: task.completed ? 'line-through' : 'none',
+                  color: task.completed ? 'text.secondary' : 'text.primary'
+                }}
+              >
+                {task.title}
+              </Typography>
 
-            <div className="card-actions">
-              {!task.completed && (
-                <button
-                  className="action-btn"
-                  onClick={() => onStartTimerForTask(task)}
-                  title="Start Focus Timer"
-                >
-                  <Play size={16} />
-                </button>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                {!task.completed && (
+                  <Tooltip title="Start Focus Timer">
+                    <IconButton size="small" onClick={() => onStartTimerForTask(task)} color="primary">
+                      <PlayArrowIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+
+                <Tooltip title={task.starred ? 'Unstar task' : 'Star task'}>
+                  <IconButton size="small" onClick={() => onToggleStar(task.id)} sx={{ color: task.starred ? '#f59e0b' : 'action.active' }}>
+                    {task.starred ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+                  </IconButton>
+                </Tooltip>
+
+                <Tooltip title="Edit task">
+                  <IconButton size="small" onClick={() => onEditTask(task)}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+
+                <Tooltip title="Delete task">
+                  <IconButton size="small" onClick={() => onDeleteTask(task.id)} color="error">
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Box>
+
+            {task.notes && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 1, lineHeight: 1.5 }}>
+                {task.notes}
+              </Typography>
+            )}
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+              {getPriorityChip(task.priority)}
+
+              {task.category && (
+                <Chip size="small" label={task.category} color="primary" variant="outlined" />
               )}
-              <button
-                className={`action-btn favorite ${task.starred ? 'starred' : ''}`}
-                onClick={() => onToggleStar(task.id)}
-                title={task.starred ? 'Unstar task' : 'Star task'}
-              >
-                <Star size={16} fill={task.starred ? '#f59e0b' : 'none'} />
-              </button>
-              <button
-                className="action-btn"
-                onClick={() => onEditTask(task)}
-                title="Edit task"
-              >
-                <Edit2 size={16} />
-              </button>
-              <button
-                className="action-btn delete"
-                onClick={() => onDeleteTask(task.id)}
-                title="Delete task"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </div>
 
-          {task.notes && <p className="task-notes">{task.notes}</p>}
+              {task.dueDate && (
+                <Chip
+                  size="small"
+                  icon={<CalendarTodayIcon fontSize="small" />}
+                  label={isOverdue ? `Overdue (${task.dueDate})` : isDueToday ? 'Due Today' : task.dueDate}
+                  color={isOverdue ? 'error' : 'default'}
+                  variant={isOverdue ? 'filled' : 'outlined'}
+                />
+              )}
+            </Box>
+          </Box>
+        </Box>
 
-          <div className="task-badges">
-            {getPriorityBadge(task.priority)}
-
-            {task.category && (
-              <span className="badge badge-category">
-                {task.category}
-              </span>
-            )}
-
-            {task.dueDate && (
-              <span className={`badge badge-due ${isOverdue ? 'overdue' : ''}`}>
-                <Calendar size={12} />
-                {isOverdue ? `Overdue (${task.dueDate})` : isDueToday ? 'Due Today' : task.dueDate}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {totalSubtasks > 0 && (
-        <div className="subtasks-section">
-          <div className="subtasks-header">
-            <span>
-              Subtasks ({completedSubtasks}/{totalSubtasks})
-            </span>
-            <button
-              className="action-btn"
+        {totalSubtasks > 0 && (
+          <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px dashed', borderColor: 'divider' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer'
+              }}
               onClick={() => setShowSubtasks(!showSubtasks)}
-              style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
-              {showSubtasks ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-          </div>
+              <Typography variant="caption" color="text.secondary" fontWeight={700}>
+                SUBTASKS ({completedSubtasks}/{totalSubtasks})
+              </Typography>
+              <IconButton size="small">
+                {showSubtasks ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+              </IconButton>
+            </Box>
 
-          {showSubtasks && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {task.subtasks.map((sub) => (
-                <div
-                  key={sub.id}
-                  className={`subtask-item ${sub.completed ? 'completed' : ''}`}
-                >
-                  <button
-                    className={`mini-checkbox ${sub.completed ? 'checked' : ''}`}
-                    onClick={() => onToggleSubtask(task.id, sub.id)}
+            <Collapse in={showSubtasks}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1 }}>
+                {task.subtasks.map((sub) => (
+                  <Box
+                    key={sub.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      opacity: sub.completed ? 0.6 : 1
+                    }}
                   >
-                    {sub.completed && <Check size={12} strokeWidth={3} />}
-                  </button>
-                  <span>{sub.title}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+                    <Checkbox
+                      size="small"
+                      checked={sub.completed}
+                      onChange={() => onToggleSubtask(task.id, sub.id)}
+                      color="success"
+                      sx={{ p: 0.25 }}
+                    />
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        textDecoration: sub.completed ? 'line-through' : 'none',
+                        color: sub.completed ? 'text.secondary' : 'text.primary'
+                      }}
+                    >
+                      {sub.title}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Collapse>
+          </Box>
+        )}
+      </CardContent>
+    </Card>
   );
 };

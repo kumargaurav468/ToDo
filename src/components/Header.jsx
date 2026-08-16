@@ -1,5 +1,22 @@
 import React from 'react';
-import { CheckSquare, Sun, Moon, Plus, Download, Upload, Timer, LogOut, LogIn, User } from 'lucide-react';
+import {
+  Paper,
+  Box,
+  Typography,
+  Button,
+  IconButton,
+  Tooltip,
+  Avatar
+} from '@mui/material';
+import TaskAltIcon from '@mui/icons-material/TaskAlt';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import AddIcon from '@mui/icons-material/Add';
+import DownloadIcon from '@mui/icons-material/Download';
+import UploadIcon from '@mui/icons-material/Upload';
+import TimerIcon from '@mui/icons-material/Timer';
+import LogoutIcon from '@mui/icons-material/Logout';
+import LoginIcon from '@mui/icons-material/Login';
 
 export const Header = ({
   user,
@@ -23,120 +40,145 @@ export const Header = ({
     if (!name) return 'U';
     return name
       .split(' ')
-      .map(part => part[0])
+      .map((part) => part[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
   };
 
   return (
-    <header className="glass-panel header-bar">
-      <div className="brand-section">
-        <div className="logo-badge">
-          <CheckSquare size={26} strokeWidth={2.5} />
-        </div>
-        <div>
-          <h1 className="brand-title">TaskFlow</h1>
-          <p className="brand-subtitle">Smart Productivity & Task Workspace</p>
-        </div>
-      </div>
-
-      <div className="header-actions">
-        <button
-          className="btn-icon"
-          onClick={onOpenTimer}
-          title="Focus Timer (Pomodoro)"
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2.5,
+        mb: 3,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 2
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box
+          sx={{
+            width: 46,
+            height: 46,
+            borderRadius: 3,
+            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
+          }}
         >
-          <Timer size={20} />
-        </button>
+          <TaskAltIcon sx={{ fontSize: 28 }} />
+        </Box>
 
-        <button
-          className="btn-icon"
-          onClick={onExportData}
-          title="Export JSON Backup"
-        >
-          <Download size={20} />
-        </button>
+        <Box>
+          <Typography
+            variant="h5"
+            sx={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '-0.02em',
+              fontWeight: 800
+            }}
+          >
+            TaskFlow
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Smart Productivity & Task Workspace
+          </Typography>
+        </Box>
+      </Box>
 
-        <label className="btn-icon" title="Import JSON Backup" style={{ cursor: 'pointer' }}>
-          <Upload size={20} />
-          <input
-            type="file"
-            accept=".json"
-            onChange={handleFileChange}
-            style={{ display: 'none' }}
-          />
-        </label>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        <Tooltip title="Focus Timer (Pomodoro)">
+          <IconButton onClick={onOpenTimer} color="inherit">
+            <TimerIcon />
+          </IconButton>
+        </Tooltip>
 
-        <button
-          className="btn-icon"
-          onClick={onToggleTheme}
-          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-        >
-          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
+        <Tooltip title="Export JSON Backup">
+          <IconButton onClick={onExportData} color="inherit">
+            <DownloadIcon />
+          </IconButton>
+        </Tooltip>
 
-        <button
-          className="btn btn-primary"
+        <Tooltip title="Import JSON Backup">
+          <IconButton component="label" color="inherit">
+            <UploadIcon />
+            <input type="file" accept=".json" onChange={handleFileChange} hidden />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}>
+          <IconButton onClick={onToggleTheme} color="inherit">
+            {theme === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
+        </Tooltip>
+
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
           onClick={onOpenNewTaskModal}
         >
-          <Plus size={18} strokeWidth={2.5} />
-          <span>New Task</span>
-        </button>
+          New Task
+        </Button>
 
-        {/* User Account / Auth Actions */}
         {user ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
-            <div
-              style={{
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
+            <Box
+              sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '6px 12px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-color)'
+                gap: 1,
+                px: 1.5,
+                py: 0.5,
+                bgcolor: 'action.hover',
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider'
               }}
             >
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  background: 'var(--accent-gradient)',
-                  color: 'white',
+              <Avatar
+                sx={{
+                  width: 28,
+                  height: 28,
                   fontSize: '0.75rem',
                   fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  bgcolor: 'primary.main'
                 }}
               >
                 {getInitials(user.name)}
-              </div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{user.name}</span>
-            </div>
+              </Avatar>
+              <Typography variant="body2" fontWeight={600}>
+                {user.name}
+              </Typography>
+            </Box>
 
-            <button
-              className="btn-icon"
-              onClick={onLogout}
-              title="Log Out"
-              style={{ color: 'var(--danger-color)' }}
-            >
-              <LogOut size={18} />
-            </button>
-          </div>
+            <Tooltip title="Log Out">
+              <IconButton onClick={onLogout} color="error">
+                <LogoutIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
         ) : (
-          <button
-            className="btn btn-secondary"
+          <Button
+            variant="outlined"
+            color="inherit"
+            startIcon={<LoginIcon />}
             onClick={onOpenAuthModal}
-            style={{ marginLeft: '4px' }}
+            sx={{ ml: 1 }}
           >
-            <LogIn size={16} />
-            <span>Sign In</span>
-          </button>
+            Sign In
+          </Button>
         )}
-      </div>
-    </header>
+      </Box>
+    </Paper>
   );
 };

@@ -1,5 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Button,
+  IconButton,
+  Box,
+  Typography,
+  Grid
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 export const TaskModal = ({ isOpen, onClose, onSave, taskToEdit }) => {
   const [title, setTitle] = useState('');
@@ -32,7 +50,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, taskToEdit }) => {
   if (!isOpen) return null;
 
   const handleAddSubtask = (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     if (!newSubtaskText.trim()) return;
     setSubtasks([
       ...subtasks,
@@ -42,7 +60,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, taskToEdit }) => {
   };
 
   const handleRemoveSubtask = (id) => {
-    setSubtasks(subtasks.filter(s => s.id !== id));
+    setSubtasks(subtasks.filter((s) => s.id !== id));
   };
 
   const handleSubmit = (e) => {
@@ -66,132 +84,133 @@ export const TaskModal = ({ isOpen, onClose, onSave, taskToEdit }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">
-            {taskToEdit ? 'Edit Task' : 'Create New Task'}
-          </h2>
-          <button className="action-btn" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle sx={{ m: 0, p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography variant="h6" fontWeight={700}>
+          {taskToEdit ? 'Edit Task' : 'Create New Task'}
+        </Typography>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
 
-        <form onSubmit={handleSubmit} className="modal-body">
-          <div className="form-group">
-            <label className="form-label">Task Title *</label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="What needs to be done?"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              autoFocus
-            />
-          </div>
+      <form onSubmit={handleSubmit}>
+        <DialogContent dividers sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <TextField
+            label="Task Title *"
+            placeholder="What needs to be done?"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            fullWidth
+            required
+            autoFocus
+          />
 
-          <div className="form-group">
-            <label className="form-label">Notes & Details</label>
-            <textarea
-              className="form-textarea"
-              rows={3}
-              placeholder="Add extra context, links, or instructions..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
+          <TextField
+            label="Notes & Details"
+            placeholder="Add extra context, links, or instructions..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            multiline
+            rows={3}
+            fullWidth
+          />
 
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Priority</label>
-              <select
-                className="form-select"
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-              >
-                <option value="high">High Priority 🔥</option>
-                <option value="medium">Medium Priority ⚡</option>
-                <option value="low">Low Priority ☕</option>
-              </select>
-            </div>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Priority</InputLabel>
+                <Select
+                  value={priority}
+                  label="Priority"
+                  onChange={(e) => setPriority(e.target.value)}
+                >
+                  <MenuItem value="high">High Priority 🔥</MenuItem>
+                  <MenuItem value="medium">Medium Priority ⚡</MenuItem>
+                  <MenuItem value="low">Low Priority ☕</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
 
-            <div className="form-group">
-              <label className="form-label">Category</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g. Work, Personal, Fitness"
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Category"
+                placeholder="e.g. Work, Personal"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
+                fullWidth
               />
-            </div>
-          </div>
+            </Grid>
+          </Grid>
 
-          <div className="form-group">
-            <label className="form-label">Due Date</label>
-            <input
-              type="date"
-              className="form-input"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
-          </div>
+          <TextField
+            label="Due Date"
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+          />
 
           {/* Subtasks Builder */}
-          <div className="form-group">
-            <label className="form-label">Subtasks Checklist</label>
-            <div className="subtask-input-row">
-              <input
-                type="text"
-                className="form-input"
+          <Box>
+            <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ mb: 1, display: 'block' }}>
+              SUBTASKS CHECKLIST
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+              <TextField
+                size="small"
                 placeholder="Add subtask item..."
                 value={newSubtaskText}
                 onChange={(e) => setNewSubtaskText(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    handleAddSubtask(e);
+                    handleAddSubtask();
                   }
                 }}
+                fullWidth
               />
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleAddSubtask}
-              >
-                <Plus size={16} /> Add
-              </button>
-            </div>
+              <Button variant="outlined" onClick={handleAddSubtask} startIcon={<AddIcon />}>
+                Add
+              </Button>
+            </Box>
 
             {subtasks.length > 0 && (
-              <div className="subtask-list-builder">
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
                 {subtasks.map((st) => (
-                  <div key={st.id} className="subtask-builder-item">
-                    <span>{st.title}</span>
-                    <button
-                      type="button"
-                      className="action-btn delete"
-                      onClick={() => handleRemoveSubtask(st.id)}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                  <Box
+                    key={st.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      p: 1,
+                      px: 1.5,
+                      borderRadius: 1.5,
+                      bgcolor: 'action.hover'
+                    }}
+                  >
+                    <Typography variant="body2">{st.title}</Typography>
+                    <IconButton size="small" onClick={() => handleRemoveSubtask(st.id)} color="error">
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
                 ))}
-              </div>
+              </Box>
             )}
-          </div>
+          </Box>
+        </DialogContent>
 
-          <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary">
-              {taskToEdit ? 'Save Changes' : 'Create Task'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={onClose} color="inherit">
+            Cancel
+          </Button>
+          <Button type="submit" variant="contained" color="primary">
+            {taskToEdit ? 'Save Changes' : 'Create Task'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 };
