@@ -1,10 +1,10 @@
 /**
  * TaskFlow Real-Time AI Agent Engine
- * Autonomous Agent architecture with Intent Analysis, Tool Invocation & Thought Tracing.
+ * Autonomous Agent architecture with Intent Analysis, Tool Invocation & Semantic AI Search.
  */
 
 // Helper to extract relative dates from natural language phrasing
-const parseNaturalDate = (text) => {
+export const parseNaturalDate = (text: string) => {
   const lower = text.toLowerCase();
   const today = new Date();
   
@@ -35,7 +35,7 @@ const parseNaturalDate = (text) => {
 };
 
 // Helper to detect priority level from conversational tone
-const parseNaturalPriority = (text) => {
+export const parseNaturalPriority = (text: string) => {
   const lower = text.toLowerCase();
   if (
     lower.includes('high priority') ||
@@ -45,7 +45,8 @@ const parseNaturalPriority = (text) => {
     lower.includes('critical') ||
     lower.includes('top priority') ||
     lower.includes('fire') ||
-    lower.includes('crucial')
+    lower.includes('crucial') ||
+    lower.includes('high')
   ) {
     return 'high';
   }
@@ -59,11 +60,14 @@ const parseNaturalPriority = (text) => {
   ) {
     return 'low';
   }
-  return 'medium';
+  if (lower.includes('medium') || lower.includes('normal')) {
+    return 'medium';
+  }
+  return null;
 };
 
 // Helper to extract category from natural context
-const parseNaturalCategory = (text) => {
+export const parseNaturalCategory = (text: string) => {
   const lower = text.toLowerCase();
   if (
     lower.includes('work') ||
@@ -95,11 +99,13 @@ const parseNaturalCategory = (text) => {
   if (lower.includes('finance') || lower.includes('bill') || lower.includes('pay') || lower.includes('tax') || lower.includes('money') || lower.includes('budget') || lower.includes('rent')) {
     return 'Finance';
   }
-  return 'General';
+  return null;
 };
 
+
+
 // Subtask breakdown generator
-export const generateSmartSubtasks = (title) => {
+export const generateSmartSubtasks = (title: string) => {
   const lower = title.toLowerCase();
   if (lower.includes('website') || lower.includes('app') || lower.includes('code') || lower.includes('project') || lower.includes('software')) {
     return [
@@ -135,7 +141,7 @@ export const generateSmartSubtasks = (title) => {
  * Real-Time AI Agent Processor
  * Performs reasoning traces and executes tool calls against the task graph.
  */
-export const processAiPrompt = async (promptText, existingTasks = []) => {
+export const processAiPrompt = async (promptText: string, existingTasks: any[] = []) => {
   const text = promptText.trim();
   const lower = text.toLowerCase();
 
@@ -328,7 +334,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       lower.includes('shopping') ||
       lower.includes('finance')
     ) {
-      const catTasks = existingTasks.filter((t) => t.category?.toLowerCase() === matchedCategory.toLowerCase());
+      const catTasks = existingTasks.filter((t) => t.category?.toLowerCase() === (matchedCategory || '').toLowerCase());
       if (catTasks.length > 0) {
         thoughts.push(`⚡ Executing delete_tasks_tool(category: "${matchedCategory}", count: ${catTasks.length})`);
         thoughts.push('💾 Mutating SQLite Database records...');
@@ -352,7 +358,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
         titleLower === cleanPromptTitle ||
         titleLower.includes(cleanPromptTitle) ||
         cleanPromptTitle.includes(titleLower) ||
-        titleLower.split(' ').some((word) => word.length > 3 && cleanPromptTitle.includes(word))
+        titleLower.split(' ').some((word: string) => word.length > 3 && cleanPromptTitle.includes(word))
       );
     });
 
@@ -448,7 +454,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
 
     const targetTask = existingTasks.find((t) => {
       const titleLower = t.title.toLowerCase();
-      return lower.includes(titleLower) || titleLower.split(' ').some((word) => word.length > 3 && lower.includes(word));
+      return lower.includes(titleLower) || titleLower.split(' ').some((word: string) => word.length > 3 && lower.includes(word));
     });
 
     if (targetTask) {
@@ -472,17 +478,19 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     }
 
     const cat = parseNaturalCategory(promptText);
-    const categoryTasks = existingTasks.filter((t) => !t.completed && t.category?.toLowerCase() === cat.toLowerCase());
-    if (categoryTasks.length > 0) {
-      thoughts.push(`⚡ Executing complete_tasks_tool(category: "${cat}", count: ${categoryTasks.length})`);
-      thoughts.push('💾 Mutating SQLite Database records...');
-      return {
-        reply: `Marked ${categoryTasks.length} task${categoryTasks.length > 1 ? 's' : ''} in ${cat} as completed! ✅`,
-        actionType: 'COMPLETE_ALL',
-        taskIds: categoryTasks.map((t) => t.id),
-        executedTool: `complete_tasks_tool(category: "${cat}")`,
-        thoughts
-      };
+    if (cat) {
+      const categoryTasks = existingTasks.filter((t) => !t.completed && t.category?.toLowerCase() === cat.toLowerCase());
+      if (categoryTasks.length > 0) {
+        thoughts.push(`⚡ Executing complete_tasks_tool(category: "${cat}", count: ${categoryTasks.length})`);
+        thoughts.push('💾 Mutating SQLite Database records...');
+        return {
+          reply: `Marked ${categoryTasks.length} task${categoryTasks.length > 1 ? 's' : ''} in ${cat} as completed! ✅`,
+          actionType: 'COMPLETE_ALL',
+          taskIds: categoryTasks.map((t) => t.id),
+          executedTool: `complete_tasks_tool(category: "${cat}")`,
+          thoughts
+        };
+      }
     }
   }
 
@@ -502,7 +510,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
 
     const pendingToReschedule = existingTasks.filter((t) => {
       if (t.completed) return false;
-      if (lower.includes('work') || lower.includes('personal') || lower.includes('health') || lower.includes('study')) {
+      if (cat && (lower.includes('work') || lower.includes('personal') || lower.includes('health') || lower.includes('study'))) {
         return t.category?.toLowerCase() === cat.toLowerCase();
       }
       return true;
@@ -535,7 +543,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     const cat = parseNaturalCategory(promptText);
     const targetTasks = existingTasks.filter((t) => {
       if (t.completed) return false;
-      if (lower.includes('work') || lower.includes('personal') || lower.includes('health')) {
+      if (cat && (lower.includes('work') || lower.includes('personal') || lower.includes('health'))) {
         return t.category?.toLowerCase() === cat.toLowerCase();
       }
       return t.priority !== 'high';
@@ -619,8 +627,8 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       cleanedTitle = text;
     }
 
-    const priority = parseNaturalPriority(text);
-    const category = parseNaturalCategory(text);
+    const priority = parseNaturalPriority(text) || 'medium';
+    const category = parseNaturalCategory(text) || 'General';
     const dueDate = parseNaturalDate(text);
     const shouldAddSubtasks = lower.includes('subtask') || lower.includes('breakdown') || lower.includes('steps');
 

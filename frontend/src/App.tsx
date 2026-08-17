@@ -330,8 +330,9 @@ export function App() {
           const q = searchQuery.toLowerCase();
           const matchTitle = t.title.toLowerCase().includes(q);
           const matchNotes = t.notes?.toLowerCase().includes(q);
+          const matchCat = t.category?.toLowerCase().includes(q);
           const matchSubtask = t.subtasks?.some((s) => s.title.toLowerCase().includes(q));
-          if (!matchTitle && !matchNotes && !matchSubtask) return false;
+          if (!matchTitle && !matchNotes && !matchCat && !matchSubtask) return false;
         }
 
         return true;
@@ -417,6 +418,7 @@ export function App() {
             sortBy={sortBy}
             onSortChange={setSortBy}
             categories={categories}
+            aiDetectedBadges={aiSearchFilter.detectedBadges}
           />
 
           {loadingTasks ? (

@@ -8,12 +8,15 @@ import {
   Tab,
   FormControl,
   Select,
-  MenuItem
+  MenuItem,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import StarIcon from '@mui/icons-material/Star';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import SortIcon from '@mui/icons-material/Sort';
+import ClearIcon from '@mui/icons-material/Clear';
 
 export const TaskControls = ({
   searchQuery,
@@ -25,13 +28,23 @@ export const TaskControls = ({
   sortBy,
   onSortChange,
   categories
+}: {
+  searchQuery: string;
+  onSearchChange: (val: string) => void;
+  activeTab: string;
+  onTabChange: (val: string) => void;
+  selectedCategory: string;
+  onCategoryChange: (val: string) => void;
+  sortBy: string;
+  onSortChange: (val: string) => void;
+  categories: string[];
 }) => {
   return (
     <Paper elevation={0} sx={{ p: 2, mb: 3 }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <TextField
           fullWidth
-          placeholder="Search tasks by title, notes, or subtasks..."
+          placeholder="Search tasks by title, notes, category, or subtasks..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           size="small"
@@ -40,7 +53,16 @@ export const TaskControls = ({
               <InputAdornment position="start">
                 <SearchIcon color="action" />
               </InputAdornment>
-            )
+            ),
+            endAdornment: searchQuery ? (
+              <InputAdornment position="end">
+                <Tooltip title="Clear Search">
+                  <IconButton size="small" onClick={() => onSearchChange('')}>
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </InputAdornment>
+            ) : null
           }}
         />
 

@@ -106,3 +106,18 @@ export const apiDeleteTask = async (userId: string, taskId: string) => {
   }
   return data.taskId;
 };
+
+export const apiAiSearch = async (userId: string, query: string) => {
+  try {
+    const res = await fetch('/api/ai/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, query })
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn('Backend AI search logging notice:', err);
+    return null;
+  }
+};
+
