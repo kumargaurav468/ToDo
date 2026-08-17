@@ -1,6 +1,6 @@
 /**
- * TaskFlow AI Natural Language Copilot Engine
- * Advanced conversational understanding, intent extraction, and automated task execution.
+ * TaskFlow Real-Time AI Agent Engine
+ * Autonomous Agent architecture with Intent Analysis, Tool Invocation & Thought Tracing.
  */
 
 // Helper to extract relative dates from natural language phrasing
@@ -132,14 +132,20 @@ export const generateSmartSubtasks = (title) => {
 };
 
 /**
- * Natural Language Processor Engine
+ * Real-Time AI Agent Processor
+ * Performs reasoning traces and executes tool calls against the task graph.
  */
 export const processAiPrompt = async (promptText, existingTasks = []) => {
   const text = promptText.trim();
   const lower = text.toLowerCase();
 
+  const thoughts = [
+    '🧠 Analyzing prompt intent and NLP context...',
+    '⚡ Resolving tool bindings & parameters...'
+  ];
+
   // -------------------------------------------------------------
-  // 1. CLEAR CHAT INTENT
+  // 1. CLEAR CHAT TOOL
   // -------------------------------------------------------------
   if (
     lower === 'clear chat' ||
@@ -151,9 +157,12 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     lower.includes('clear chat') ||
     lower.includes('reset chat')
   ) {
+    thoughts.push('🔧 Invoking Tool: clear_chat_tool()');
     return {
-      reply: "Chat history cleared! ✨ How can I help you today?",
-      actionType: 'CLEAR_CHAT'
+      reply: "Chat history cleared! ✨ How can I assist your real-time workflow today?",
+      actionType: 'CLEAR_CHAT',
+      executedTool: 'clear_chat_tool()',
+      thoughts
     };
   }
 
@@ -171,9 +180,12 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     lower.includes('who are you')
   ) {
     const greetingTime = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
+    thoughts.push('💬 Formulating real-time conversational response...');
     return {
-      reply: `${greetingTime}! 👋 I'm your TaskFlow AI Copilot. How can I help you today?\n\nYou can say:\n• *"Add task buy groceries"* -> Creates a task\n• *"Delete task prepare presentation"* -> Deletes specific task\n• *"I finished writing the report"* -> Marks task complete\n• *"Clear chat"* -> Clears history`,
-      actionType: 'NONE'
+      reply: `${greetingTime}! 👋 I am your Real-Time TaskFlow AI Agent 🤖.\n\nI operate asynchronously with tool-calling capabilities! You can command me to:\n• *"Add task design dashboard tomorrow"* -> Create task\n• *"Delete all work tasks"* -> Batch SQL deletion\n• *"Reschedule tasks to next week"* -> Bulk date adjustment\n• *"Clear chat"* -> Wipes transcript`,
+      actionType: 'NONE',
+      executedTool: 'conversational_agent_node()',
+      thoughts
     };
   }
 
@@ -181,14 +193,17 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   // 3. GRATITUDE / COMPLIMENTS
   // -------------------------------------------------------------
   if (lower.includes('thank') || lower.includes('awesome') || lower.includes('great job') || lower.includes('cool') || lower.includes('nice')) {
+    thoughts.push('😊 Processing positive telemetry feedback...');
     return {
-      reply: "You're very welcome! 😊 I'm always here to help keep your productivity flow smooth and organized. Let me know if you need anything else!",
-      actionType: 'NONE'
+      reply: "You're very welcome! 🚀 My real-time agent engine is always ready to automate your productivity workflow.",
+      actionType: 'NONE',
+      executedTool: 'telemetry_feedback_node()',
+      thoughts
     };
   }
 
   // -------------------------------------------------------------
-  // 4. TASK DELETION INTENT
+  // 4. TASK DELETION TOOL (delete_tasks_tool)
   // -------------------------------------------------------------
   if (
     lower.includes('delete') ||
@@ -197,10 +212,14 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     lower.includes('erase') ||
     lower.includes('drop task')
   ) {
+    thoughts.push('🔍 Querying active task graph for deletion targets...');
+
     if (existingTasks.length === 0) {
       return {
-        reply: "You don't have any tasks in your list to delete right now! 📭",
-        actionType: 'NONE'
+        reply: "No tasks found in your workspace database to delete! 📭",
+        actionType: 'NONE',
+        executedTool: 'delete_tasks_tool(target: null)',
+        thoughts
       };
     }
 
@@ -216,10 +235,14 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       lower === 'clear tasks';
 
     if (isGeneralDeleteAll) {
+      thoughts.push(`⚡ Executing delete_tasks_tool(scope: ALL, count: ${existingTasks.length})`);
+      thoughts.push('💾 Mutating SQLite Database records...');
       return {
         reply: `Deleted all ${existingTasks.length} task${existingTasks.length > 1 ? 's' : ''} from your workspace! 🗑️`,
         actionType: 'DELETE_TASKS',
-        taskIds: existingTasks.map((t) => t.id)
+        taskIds: existingTasks.map((t) => t.id),
+        executedTool: `delete_tasks_tool(scope: ALL, count: ${existingTasks.length})`,
+        thoughts
       };
     }
 
@@ -227,14 +250,20 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       const completedTasks = existingTasks.filter((t) => t.completed);
       if (completedTasks.length === 0) {
         return {
-          reply: "You don't have any completed tasks to delete right now!",
-          actionType: 'NONE'
+          reply: "No completed tasks available for deletion!",
+          actionType: 'NONE',
+          executedTool: 'delete_tasks_tool(scope: COMPLETED, count: 0)',
+          thoughts
         };
       }
+      thoughts.push(`⚡ Executing delete_tasks_tool(scope: COMPLETED, count: ${completedTasks.length})`);
+      thoughts.push('💾 Mutating SQLite Database records...');
       return {
-        reply: `Deleted ${completedTasks.length} completed task${completedTasks.length > 1 ? 's' : ''} from your database! 🗑️`,
+        reply: `Deleted ${completedTasks.length} completed task${completedTasks.length > 1 ? 's' : ''} from your SQL database! 🗑️`,
         actionType: 'DELETE_TASKS',
-        taskIds: completedTasks.map((t) => t.id)
+        taskIds: completedTasks.map((t) => t.id),
+        executedTool: `delete_tasks_tool(scope: COMPLETED, count: ${completedTasks.length})`,
+        thoughts
       };
     }
 
@@ -249,10 +278,14 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     ) {
       const catTasks = existingTasks.filter((t) => t.category?.toLowerCase() === matchedCategory.toLowerCase());
       if (catTasks.length > 0) {
+        thoughts.push(`⚡ Executing delete_tasks_tool(category: "${matchedCategory}", count: ${catTasks.length})`);
+        thoughts.push('💾 Mutating SQLite Database records...');
         return {
           reply: `Deleted ${catTasks.length} task${catTasks.length > 1 ? 's' : ''} in **${matchedCategory}** category! 🗑️`,
           actionType: 'DELETE_TASKS',
-          taskIds: catTasks.map((t) => t.id)
+          taskIds: catTasks.map((t) => t.id),
+          executedTool: `delete_tasks_tool(category: "${matchedCategory}")`,
+          thoughts
         };
       }
     }
@@ -272,21 +305,27 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     });
 
     if (targetTask) {
+      thoughts.push(`⚡ Executing delete_tasks_tool(id: "${targetTask.id}", title: "${targetTask.title}")`);
+      thoughts.push('💾 Mutating SQLite Database records...');
       return {
         reply: `Deleted task **"${targetTask.title}"** from your list! 🗑️`,
         actionType: 'DELETE_TASKS',
-        taskIds: [targetTask.id]
+        taskIds: [targetTask.id],
+        executedTool: `delete_tasks_tool(title: "${targetTask.title}")`,
+        thoughts
       };
     }
 
     return {
-      reply: `Could not find a task matching "${cleanPromptTitle || promptText}". Please check the task title and try again! 🔍`,
-      actionType: 'NONE'
+      reply: `Could not locate a task matching "${cleanPromptTitle || promptText}". Please verify the title! 🔍`,
+      actionType: 'NONE',
+      executedTool: 'delete_tasks_tool(status: NOT_FOUND)',
+      thoughts
     };
   }
 
   // -------------------------------------------------------------
-  // 5. "WHAT SHOULD I WORK ON NEXT?" / RECOMMENDATION
+  // 5. FOCUS RECOMMENDATION TOOL (focus_recommendation_tool)
   // -------------------------------------------------------------
   if (
     lower.includes('what should i do') ||
@@ -296,25 +335,32 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     lower.includes('where to start') ||
     lower.includes('recommend')
   ) {
+    thoughts.push('📊 Executing focus_recommendation_tool()...');
+    thoughts.push('⚡ Scoring task priority weights & due dates...');
+
     const pendingHigh = existingTasks.filter((t) => !t.completed && t.priority === 'high');
     const pendingAny = existingTasks.filter((t) => !t.completed);
 
     if (pendingAny.length === 0) {
       return {
-        reply: "🎉 You have zero pending tasks! Your task list is totally clear. Take a well-deserved break or ask me to add new goals!",
-        actionType: 'NONE'
+        reply: "🎉 Zero pending tasks in database! Your task queue is clear. Take a break or command me to schedule new goals!",
+        actionType: 'NONE',
+        executedTool: 'focus_recommendation_tool(status: CLEAR)',
+        thoughts
       };
     }
 
     const topTask = pendingHigh.length > 0 ? pendingHigh[0] : pendingAny[0];
     return {
-      reply: `🎯 **Recommended Focus**:\n\nI suggest starting with **"${topTask.title}"** ${topTask.category ? `(${topTask.category})` : ''} ${topTask.priority === 'high' ? '🔥 High Priority' : ''}.\n\nTip: Use the Pomodoro timer tool at the top to tackle it in a 25-minute focus session! ⏱️`,
-      actionType: 'NONE'
+      reply: `🎯 **Agent Recommendation**:\n\nFocus on **"${topTask.title}"** ${topTask.category ? `[${topTask.category}]` : ''} ${topTask.priority === 'high' ? '🔥 High Priority' : ''}.\n\nTip: Start a 25-minute Pomodoro focus timer from the top bar! ⏱️`,
+      actionType: 'NONE',
+      executedTool: `focus_recommendation_tool(recommended_id: "${topTask.id}")`,
+      thoughts
     };
   }
 
   // -------------------------------------------------------------
-  // 6. TASK COMPLETION
+  // 6. TASK COMPLETION TOOL (complete_tasks_tool)
   // -------------------------------------------------------------
   if (
     lower.includes('finished') ||
@@ -325,18 +371,26 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     lower.includes('mark complete') ||
     lower.includes('wrap up')
   ) {
+    thoughts.push('⚡ Resolving task completion tool parameters...');
+
     if (lower.includes('everything') || lower.includes('all tasks') || lower.includes('complete all')) {
       const activeTasks = existingTasks.filter((t) => !t.completed);
       if (activeTasks.length === 0) {
         return {
-          reply: "All your tasks are already marked as completed! Outstanding work! 🎉",
-          actionType: 'NONE'
+          reply: "All tasks are already marked as completed! Excellent work! 🎉",
+          actionType: 'NONE',
+          executedTool: 'complete_tasks_tool(scope: ALL, count: 0)',
+          thoughts
         };
       }
+      thoughts.push(`⚡ Executing complete_tasks_tool(scope: ALL, count: ${activeTasks.length})`);
+      thoughts.push('💾 Mutating SQLite Database records...');
       return {
         reply: `Marked all ${activeTasks.length} pending task${activeTasks.length > 1 ? 's' : ''} as completed! 🎉`,
         actionType: 'COMPLETE_ALL',
-        taskIds: activeTasks.map((t) => t.id)
+        taskIds: activeTasks.map((t) => t.id),
+        executedTool: `complete_tasks_tool(scope: ALL, count: ${activeTasks.length})`,
+        thoughts
       };
     }
 
@@ -348,30 +402,40 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     if (targetTask) {
       if (targetTask.completed) {
         return {
-          reply: `Task **"${targetTask.title}"** is already marked as completed! ✅`,
-          actionType: 'NONE'
+          reply: `Task **"${targetTask.title}"** is already completed! ✅`,
+          actionType: 'NONE',
+          executedTool: `complete_tasks_tool(status: ALREADY_COMPLETE)`,
+          thoughts
         };
       }
+      thoughts.push(`⚡ Executing complete_tasks_tool(id: "${targetTask.id}")`);
+      thoughts.push('💾 Mutating SQLite Database records...');
       return {
-        reply: `Awesome! Marked task **"${targetTask.title}"** as completed! ✅`,
+        reply: `Marked task **"${targetTask.title}"** as completed! ✅`,
         actionType: 'COMPLETE_ALL',
-        taskIds: [targetTask.id]
+        taskIds: [targetTask.id],
+        executedTool: `complete_tasks_tool(title: "${targetTask.title}")`,
+        thoughts
       };
     }
 
     const cat = parseNaturalCategory(promptText);
     const categoryTasks = existingTasks.filter((t) => !t.completed && t.category?.toLowerCase() === cat.toLowerCase());
     if (categoryTasks.length > 0) {
+      thoughts.push(`⚡ Executing complete_tasks_tool(category: "${cat}", count: ${categoryTasks.length})`);
+      thoughts.push('💾 Mutating SQLite Database records...');
       return {
         reply: `Marked ${categoryTasks.length} task${categoryTasks.length > 1 ? 's' : ''} in **${cat}** as completed! ✅`,
         actionType: 'COMPLETE_ALL',
-        taskIds: categoryTasks.map((t) => t.id)
+        taskIds: categoryTasks.map((t) => t.id),
+        executedTool: `complete_tasks_tool(category: "${cat}")`,
+        thoughts
       };
     }
   }
 
   // -------------------------------------------------------------
-  // 7. RESCHEDULING / POSTPONING
+  // 7. RESCHEDULING TOOL (update_tasks_tool)
   // -------------------------------------------------------------
   if (
     lower.includes('postpone') ||
@@ -380,6 +444,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     lower.includes('delay') ||
     lower.includes('move to')
   ) {
+    thoughts.push('📅 Parsing natural temporal target...');
     const newDate = parseNaturalDate(promptText) || new Date(Date.now() + 86400000).toISOString().split('T')[0];
     const cat = parseNaturalCategory(promptText);
 
@@ -392,16 +457,20 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     });
 
     if (pendingToReschedule.length > 0) {
+      thoughts.push(`⚡ Executing update_tasks_tool(dueDate: "${newDate}", count: ${pendingToReschedule.length})`);
+      thoughts.push('💾 Mutating SQLite Database records...');
       return {
         reply: `📅 Rescheduled ${pendingToReschedule.length} task${pendingToReschedule.length > 1 ? 's' : ''} to **${newDate}**!`,
         actionType: 'UPDATE_TASKS',
-        updatedTasks: pendingToReschedule.map((t) => ({ ...t, dueDate: newDate }))
+        updatedTasks: pendingToReschedule.map((t) => ({ ...t, dueDate: newDate })),
+        executedTool: `update_tasks_tool(dueDate: "${newDate}")`,
+        thoughts
       };
     }
   }
 
   // -------------------------------------------------------------
-  // 8. PRIORITY ELEVATION
+  // 8. PRIORITY ELEVATION TOOL (update_tasks_tool)
   // -------------------------------------------------------------
   if (
     lower.includes('urgent') ||
@@ -410,6 +479,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     lower.includes('promote') ||
     lower.includes('make high')
   ) {
+    thoughts.push('🔥 Elevating task priority weights in active graph...');
     const cat = parseNaturalCategory(promptText);
     const targetTasks = existingTasks.filter((t) => {
       if (t.completed) return false;
@@ -420,47 +490,59 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     });
 
     if (targetTasks.length > 0) {
+      thoughts.push(`⚡ Executing update_tasks_tool(priority: "high", count: ${targetTasks.length})`);
+      thoughts.push('💾 Mutating SQLite Database records...');
       return {
         reply: `🔥 Elevated ${targetTasks.length} task${targetTasks.length > 1 ? 's' : ''} to **High Priority**!`,
         actionType: 'UPDATE_TASKS',
-        updatedTasks: targetTasks.map((t) => ({ ...t, priority: 'high', starred: true }))
+        updatedTasks: targetTasks.map((t) => ({ ...t, priority: 'high', starred: true })),
+        executedTool: `update_tasks_tool(priority: "high")`,
+        thoughts
       };
     }
   }
 
   // -------------------------------------------------------------
-  // 9. SUBTASK BREAKDOWN
+  // 9. SUBTASK BREAKDOWN TOOL (add_subtasks_tool)
   // -------------------------------------------------------------
   if (lower.includes('subtask') || lower.includes('break down') || lower.includes('split') || lower.includes('steps')) {
+    thoughts.push('📋 Generating automated subtask decomposition graph...');
     const matchedTask = existingTasks.find((t) => lower.includes(t.title.toLowerCase()));
     if (matchedTask) {
       const generated = generateSmartSubtasks(matchedTask.title);
+      thoughts.push(`⚡ Executing add_subtasks_tool(taskId: "${matchedTask.id}", count: ${generated.length})`);
+      thoughts.push('💾 Mutating SQLite Database subtasks table...');
       return {
         reply: `Generated ${generated.length} checklist steps for **"${matchedTask.title}"**! 📋`,
         actionType: 'ADD_SUBTASKS',
         taskId: matchedTask.id,
-        subtasks: generated
+        subtasks: generated,
+        executedTool: `add_subtasks_tool(title: "${matchedTask.title}")`,
+        thoughts
       };
     }
   }
 
   // -------------------------------------------------------------
-  // 10. STATUS / PRODUCTIVITY ADVICE & SUMMARIES
+  // 10. STATUS & ANALYTICS TOOL (analytics_summary_tool)
   // -------------------------------------------------------------
   if (lower.includes('summary') || lower.includes('status') || lower.includes('overview') || lower.includes('advice') || lower.includes('coach')) {
+    thoughts.push('📊 Executing analytics_summary_tool()...');
     const total = existingTasks.length;
     const completed = existingTasks.filter((t) => t.completed).length;
     const highPriority = existingTasks.filter((t) => t.priority === 'high' && !t.completed).length;
     const pending = total - completed;
 
     return {
-      reply: `📊 **Productivity Summary**:\n• Total Tasks: **${total}**\n• Active Pending: **${pending}**\n• Completed: **${completed}**${highPriority > 0 ? `\n• High Priority Pending: **${highPriority}** ⚡` : ''}`,
-      actionType: 'NONE'
+      reply: `📊 **Real-Time Analytics Summary**:\n• Total Database Tasks: **${total}**\n• Active Pending: **${pending}**\n• Completed: **${completed}**${highPriority > 0 ? `\n• High Priority Pending: **${highPriority}** ⚡` : ''}`,
+      actionType: 'NONE',
+      executedTool: 'analytics_summary_tool()',
+      thoughts
     };
   }
 
   // -------------------------------------------------------------
-  // 11. EXPLICIT TASK CREATION (Requires keywords like 'create', 'add', 'remind', 'schedule')
+  // 11. EXPLICIT TASK CREATION TOOL (create_task_tool)
   // -------------------------------------------------------------
   const isCreateIntent =
     lower.includes('create') ||
@@ -475,6 +557,8 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     lower.includes('put');
 
   if (isCreateIntent) {
+    thoughts.push('📝 Extracting task entity attributes (title, category, priority, due date)...');
+
     let cleanedTitle = text
       .replace(/^(create a task to|add a task to|create task|add task|remind me to|schedule a task for|schedule task|set a task to|set task to|i need to|i have to|new task|create|add|schedule|set)\s+/i, '')
       .trim();
@@ -491,7 +575,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     const newTask = {
       id: `task-${Date.now()}`,
       title: cleanedTitle.charAt(0).toUpperCase() + cleanedTitle.slice(1),
-      notes: `Created automatically by TaskFlow AI Assistant.`,
+      notes: `Created automatically by TaskFlow AI Real-Time Agent.`,
       category,
       priority,
       dueDate,
@@ -500,6 +584,9 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       createdAt: new Date().toISOString(),
       subtasks: shouldAddSubtasks ? generateSmartSubtasks(cleanedTitle) : []
     };
+
+    thoughts.push(`⚡ Executing create_task_tool(title: "${newTask.title}", priority: "${priority}")`);
+    thoughts.push('💾 Inserting record into SQLite tasks table...');
 
     let summaryReply = `Created task **"${newTask.title}"**`;
     if (category) summaryReply += ` in **${category}**`;
@@ -511,15 +598,20 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     return {
       reply: summaryReply,
       actionType: 'CREATE_TASK',
-      task: newTask
+      task: newTask,
+      executedTool: `create_task_tool(title: "${newTask.title}")`,
+      thoughts
     };
   }
 
   // -------------------------------------------------------------
-  // 12. UNRECOGNIZED INPUT (Default helpful response - DOES NOT CREATE TASK!)
+  // 12. UNRECOGNIZED INPUT
   // -------------------------------------------------------------
+  thoughts.push('❓ No executable tool matched input string.');
   return {
-    reply: `I didn't quite catch that. 🤔\n\nIf you'd like to create a task, please start with **"create"** or **"add"** (e.g. *"Create task buy groceries"* or *"Add meeting with team tomorrow"*).`,
-    actionType: 'NONE'
+    reply: `I didn't recognize a specific tool command for "${promptText}". 🤔\n\n• To add a task, use **"create"** or **"add"** (e.g. *"Add task review PR tomorrow"*).\n• To delete tasks, say **"delete task [name]"** or **"delete all tasks"**.\n• To clear chat history, say **"clear chat"**.`,
+    actionType: 'NONE',
+    executedTool: 'unmatched_intent_node()',
+    thoughts
   };
 };

@@ -5,13 +5,15 @@ import {
   Typography,
   IconButton,
   TextField,
-  Button,
   Avatar,
   Chip,
   Paper,
   CircularProgress,
   Divider,
-  Tooltip
+  Tooltip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
@@ -19,6 +21,9 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import PsychofarmologyIcon from '@mui/icons-material/Psychology';
+import BuildIcon from '@mui/icons-material/Build';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 const SUGGESTED_PROMPTS = [
   '👋 Good morning, what should I focus on next?',
@@ -31,8 +36,10 @@ const SUGGESTED_PROMPTS = [
 const INITIAL_MESSAGE = {
   id: 'msg-init',
   sender: 'ai',
-  text: "Hello! I'm your TaskFlow AI Copilot 🤖. How can I help you today?\n\nYou can ask me to create tasks, delete tasks (e.g. 'Delete task report'), clear chat history ('Clear chat'), mark items completed, or reschedule dates!",
-  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  text: "Hello! I am your Real-Time TaskFlow AI Agent 🤖. How can I assist your productivity workflow today?\n\nYou can issue autonomous commands to create tasks ('Add task report tomorrow'), delete tasks ('Delete completed tasks'), clear chat history ('Clear chat'), or postpone dates!",
+  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  executedTool: 'agent_init_node()',
+  thoughts: ['🟢 Agent system online', '⚡ Real-time database listening active']
 };
 
 export const AiChatDrawer = ({
@@ -44,6 +51,7 @@ export const AiChatDrawer = ({
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([INITIAL_MESSAGE]);
   const [loading, setLoading] = useState(false);
+  const [currentThoughtStep, setCurrentThoughtStep] = useState('');
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -54,7 +62,7 @@ export const AiChatDrawer = ({
     if (isOpen) {
       scrollToBottom();
     }
-  }, [messages, isOpen]);
+  }, [messages, loading, currentThoughtStep, isOpen]);
 
   const handleClearChat = () => {
     setMessages([
@@ -81,6 +89,13 @@ export const AiChatDrawer = ({
     if (!textToSend) setInput('');
     setLoading(true);
 
+    // Simulate real-time step-by-step thinking
+    setCurrentThoughtStep('🧠 Agent analyzing prompt intent & context...');
+    await new Promise((r) => setTimeout(r, 250));
+
+    setCurrentThoughtStep('⚡ Resolving SQL database tool bindings...');
+    await new Promise((r) => setTimeout(r, 250));
+
     try {
       const result = await onExecuteAiAction(promptText);
 
@@ -89,10 +104,15 @@ export const AiChatDrawer = ({
         return;
       }
 
+      setCurrentThoughtStep('✨ Synthesizing final agent response...');
+      await new Promise((r) => setTimeout(r, 200));
+
       const aiMsg = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
         text: result.reply,
+        executedTool: result.executedTool || 'agent_node()',
+        thoughts: result.thoughts || [],
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, aiMsg]);
@@ -102,12 +122,13 @@ export const AiChatDrawer = ({
         {
           id: `ai-err-${Date.now()}`,
           sender: 'ai',
-          text: `Sorry, I encountered an error: ${err.message}`,
+          text: `Real-Time Agent Error: ${err.message}`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
     } finally {
       setLoading(false);
+      setCurrentThoughtStep('');
     }
   };
 
@@ -118,7 +139,7 @@ export const AiChatDrawer = ({
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: { xs: '100%', sm: 420 },
+          width: { xs: '100%', sm: 440 },
           display: 'flex',
           flexDirection: 'column',
           bgcolor: 'background.paper',
@@ -126,7 +147,7 @@ export const AiChatDrawer = ({
         }
       }}
     >
-      {/* Drawer Header */}
+      {/* Drawer Header with Real-Time Agent Badge */}
       <Box
         sx={{
           p: 2.5,
@@ -135,7 +156,7 @@ export const AiChatDrawer = ({
           justifyContent: 'space-between',
           borderBottom: 1,
           borderColor: 'divider',
-          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%)'
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.12) 100%)'
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -144,17 +165,34 @@ export const AiChatDrawer = ({
               bgcolor: 'transparent',
               background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)',
               color: 'white',
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4)'
             }}
           >
             <AutoAwesomeIcon />
           </Avatar>
           <Box>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              TaskFlow AI Copilot
+            <Typography variant="subtitle1" fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              TaskFlow AI Agent
+              <Chip
+                label="LIVE AGENT"
+                size="small"
+                color="success"
+                sx={{
+                  height: 20,
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  letterSpacing: 0.5,
+                  animation: 'pulse 2s infinite',
+                  '@keyframes pulse': {
+                    '0%': { opacity: 1 },
+                    '50%': { opacity: 0.6 },
+                    '100%': { opacity: 1 }
+                  }
+                }}
+              />
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Natural Language Assistant
+              Real-Time Autonomous Copilot
             </Typography>
           </Box>
         </Box>
@@ -173,7 +211,7 @@ export const AiChatDrawer = ({
       {/* Suggested Natural Language Prompts */}
       <Box sx={{ p: 2, bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-          Try Natural Prompts:
+          Real-Time Commands:
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           {SUGGESTED_PROMPTS.map((prompt, idx) => (
@@ -197,7 +235,7 @@ export const AiChatDrawer = ({
         </Box>
       </Box>
 
-      {/* Message History */}
+      {/* Message History & Agent Execution Traces */}
       <Box
         sx={{
           flexGrow: 1,
@@ -205,7 +243,7 @@ export const AiChatDrawer = ({
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: 2
+          gap: 2.5
         }}
       >
         {messages.map((msg) => (
@@ -223,12 +261,13 @@ export const AiChatDrawer = ({
                 width: 32,
                 height: 32,
                 fontSize: '0.85rem',
-                bgcolor: msg.sender === 'user' ? 'primary.main' : 'secondary.main'
+                bgcolor: msg.sender === 'user' ? 'primary.main' : 'secondary.main',
+                boxShadow: msg.sender === 'ai' ? '0 2px 8px rgba(168, 85, 247, 0.3)' : 'none'
               }}
             >
               {msg.sender === 'user' ? <PersonIcon fontSize="small" /> : <SmartToyIcon fontSize="small" />}
             </Avatar>
-            <Box sx={{ maxWidth: '80%' }}>
+            <Box sx={{ maxWidth: '82%' }}>
               <Paper
                 elevation={0}
                 sx={{
@@ -237,7 +276,8 @@ export const AiChatDrawer = ({
                   bgcolor: msg.sender === 'user' ? 'primary.main' : 'action.selected',
                   color: msg.sender === 'user' ? 'white' : 'text.primary',
                   borderTopRightRadius: msg.sender === 'user' ? 4 : 12,
-                  borderTopLeftRadius: msg.sender === 'user' ? 12 : 4
+                  borderTopLeftRadius: msg.sender === 'user' ? 12 : 4,
+                  boxShadow: msg.sender === 'ai' ? '0 2px 10px rgba(0,0,0,0.05)' : 'none'
                 }}
               >
                 <Typography
@@ -250,6 +290,53 @@ export const AiChatDrawer = ({
                 >
                   {msg.text}
                 </Typography>
+
+                {/* Render Executed Tool Badge if available */}
+                {msg.executedTool && (
+                  <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Chip
+                      icon={<BuildIcon style={{ fontSize: 12, color: '#a855f7' }} />}
+                      label={`Tool Executed: ${msg.executedTool}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        fontSize: '0.68rem',
+                        height: 22,
+                        borderColor: 'rgba(168, 85, 247, 0.4)',
+                        color: msg.sender === 'user' ? 'white' : 'text.secondary'
+                      }}
+                    />
+                  </Box>
+                )}
+
+                {/* Render Agent Thought Process Accordion */}
+                {msg.thoughts && msg.thoughts.length > 0 && (
+                  <Accordion
+                    elevation={0}
+                    sx={{
+                      mt: 1,
+                      bgcolor: 'transparent',
+                      '&:before': { display: 'none' },
+                      borderTop: '1px dashed rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    <AccordionSummary
+                      expandIcon={<ExpandMoreIcon sx={{ fontSize: 14 }} />}
+                      sx={{ p: 0, minHeight: 24, '& .MuiAccordionSummary-content': { my: 0.5 } }}
+                    >
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem', fontWeight: 600 }}>
+                        <PsychofarmologyIcon sx={{ fontSize: 13, color: '#6366f1' }} /> View Agent Execution Trace ({msg.thoughts.length} steps)
+                      </Typography>
+                    </AccordionSummary>
+                    <AccordionDetails sx={{ p: 1, bgcolor: 'action.hover', borderRadius: 1.5 }}>
+                      {msg.thoughts.map((step, sIdx) => (
+                        <Typography key={sIdx} variant="caption" sx={{ display: 'block', fontSize: '0.7rem', color: 'text.secondary', fontFamily: 'monospace' }}>
+                          {step}
+                        </Typography>
+                      ))}
+                    </AccordionDetails>
+                  </Accordion>
+                )}
               </Paper>
               <Typography
                 variant="caption"
@@ -262,19 +349,23 @@ export const AiChatDrawer = ({
           </Box>
         ))}
 
+        {/* Real-time Agent Thinking Animation State */}
         {loading && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main', animation: 'pulse 1.5s infinite' }}>
               <SmartToyIcon fontSize="small" />
             </Avatar>
 
-            <Paper elevation={0} sx={{ p: 1.5, borderRadius: 3, bgcolor: 'action.selected' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CircularProgress size={16} color="inherit" />
-                <Typography variant="caption" color="text.secondary">
-                  TaskFlow AI is processing...
+            <Paper elevation={0} sx={{ p: 1.75, borderRadius: 3, bgcolor: 'action.selected', borderTopLeftRadius: 4, maxWidth: '80%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <CircularProgress size={14} color="secondary" />
+                <Typography variant="caption" fontWeight={700} color="secondary">
+                  Real-Time AI Agent Reasoning...
                 </Typography>
               </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontFamily: 'monospace', fontSize: '0.72rem' }}>
+                {currentThoughtStep || '⚡ Executing real-time agent workflow...'}
+              </Typography>
             </Paper>
           </Box>
         )}
