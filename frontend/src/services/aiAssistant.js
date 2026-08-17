@@ -153,7 +153,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   ) {
     const greetingTime = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
     return {
-      reply: `${greetingTime}! 👋 I'm your TaskFlow AI Copilot. You can talk to me naturally like a human assistant!\n\nFor example, say:\n• *"Delete task prepare presentation"* -> Deletes specific task\n• *"I finished writing the report"* -> Marks task complete\n• *"Remind me to call doctor tomorrow"* -> Creates task\n• *"Clear all completed tasks"* -> Wipes finished tasks`,
+      reply: `${greetingTime}! 👋 I'm your TaskFlow AI Copilot. You can talk to me naturally like a human assistant!\n\nFor example, say:\n• *"Delete all tasks"* -> Clears entire task list\n• *"Delete task prepare presentation"* -> Deletes specific task\n• *"I finished writing the report"* -> Marks task complete\n• *"Remind me to call doctor tomorrow"* -> Creates task`,
       actionType: 'NONE'
     };
   }
@@ -169,17 +169,43 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 3. TASK DELETION (Specific Task, Category Tasks, or Completed Tasks)
+  // 3. TASK DELETION INTENT (Ensures delete commands never fall through!)
   // -------------------------------------------------------------
   if (
     lower.includes('delete') ||
     lower.includes('remove') ||
     lower.includes('trash') ||
     lower.includes('erase') ||
-    lower.includes('clear') ||
     lower.includes('drop task')
   ) {
-    // 3a. Delete completed tasks
+    if (existingTasks.length === 0) {
+      return {
+        reply: "You don't have any tasks in your list to delete right now! 📭",
+        actionType: 'NONE'
+      };
+    }
+
+    // 3a. Delete all tasks (e.g. "delete tasks", "delete all tasks", "remove all tasks", "delete all", "delete task")
+    const isGeneralDeleteAll =
+      lower === 'delete tasks' ||
+      lower === 'delete task' ||
+      lower === 'delete all tasks' ||
+      lower === 'delete all task' ||
+      lower === 'delete all' ||
+      lower === 'remove all tasks' ||
+      lower === 'remove tasks' ||
+      lower === 'clear all tasks' ||
+      lower === 'clear tasks';
+
+    if (isGeneralDeleteAll) {
+      return {
+        reply: `Deleted all ${existingTasks.length} task${existingTasks.length > 1 ? 's' : ''} from your workspace! 🗑️`,
+        actionType: 'DELETE_TASKS',
+        taskIds: existingTasks.map((t) => t.id)
+      };
+    }
+
+    // 3b. Delete completed tasks
     if (lower.includes('completed') || lower.includes('finished') || lower.includes('done')) {
       const completedTasks = existingTasks.filter((t) => t.completed);
       if (completedTasks.length === 0) {
@@ -195,16 +221,15 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       };
     }
 
-    // 3b. Delete category tasks (e.g., "delete all work tasks", "remove personal tasks")
+    // 3c. Delete category tasks (e.g. "delete all work tasks", "remove personal tasks")
     const matchedCategory = parseNaturalCategory(promptText);
     if (
-      lower.includes('all work') ||
-      lower.includes('all personal') ||
-      lower.includes('all health') ||
-      lower.includes('all study') ||
-      lower.includes('all shopping') ||
-      lower.includes('all finance') ||
-      lower.includes('category')
+      lower.includes('work') ||
+      lower.includes('personal') ||
+      lower.includes('health') ||
+      lower.includes('study') ||
+      lower.includes('shopping') ||
+      lower.includes('finance')
     ) {
       const catTasks = existingTasks.filter((t) => t.category?.toLowerCase() === matchedCategory.toLowerCase());
       if (catTasks.length > 0) {
@@ -216,19 +241,34 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       }
     }
 
-    // 3c. Delete specific task matching title
+    // 3d. Delete specific task matching title
+    const cleanPromptTitle = lower
+      .replace(/^(delete task|remove task|delete the task|remove the task|delete|remove|trash|erase)\s+/i, '')
+      .trim();
+
     const targetTask = existingTasks.find((t) => {
       const titleLower = t.title.toLowerCase();
-      return lower.includes(titleLower) || titleLower.split(' ').some((word) => word.length > 3 && lower.includes(word));
+      return (
+        titleLower === cleanPromptTitle ||
+        titleLower.includes(cleanPromptTitle) ||
+        cleanPromptTitle.includes(titleLower) ||
+        titleLower.split(' ').some((word) => word.length > 3 && cleanPromptTitle.includes(word))
+      );
     });
 
     if (targetTask) {
       return {
-        reply: `Deleted task **"${targetTask.title}"** from your task list! 🗑️`,
+        reply: `Deleted task **"${targetTask.title}"** from your list! 🗑️`,
         actionType: 'DELETE_TASKS',
         taskIds: [targetTask.id]
       };
     }
+
+    // If no matching title found, respond with clear error message instead of creating a task
+    return {
+      reply: `Could not find a task matching "${cleanPromptTitle || promptText}". Please check the task title and try again! 🔍`,
+      actionType: 'NONE'
+    };
   }
 
   // -------------------------------------------------------------
@@ -260,7 +300,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 5. TASK COMPLETION (e.g. "I finished...", "Done with...", "Mark ... complete")
+  // 5. TASK COMPLETION
   // -------------------------------------------------------------
   if (
     lower.includes('finished') ||
@@ -317,7 +357,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 6. RESCHEDULING / POSTPONING (e.g. "I'm busy, push work to tomorrow")
+  // 6. RESCHEDULING / POSTPONING
   // -------------------------------------------------------------
   if (
     lower.includes('postpone') ||
