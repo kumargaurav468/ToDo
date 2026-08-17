@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { Container, Box, Paper, Typography, Button, CircularProgress } from '@mui/material';
+import { Container, Box, Paper, Typography, Button, CircularProgress, Fab, Tooltip } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import AddIcon from '@mui/icons-material/Add';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 import { Header } from './components/Header';
 import { TaskStats } from './components/TaskStats';
@@ -14,6 +15,7 @@ import { FocusTimerModal } from './components/FocusTimerModal';
 import { AuthModal } from './components/AuthModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { AlertDialog } from './components/AlertDialog';
+import { AiChatDrawer } from './components/AiChatDrawer';
 import { getAppTheme } from './theme/theme';
 import {
   loadCurrentUserFromStorage,
@@ -26,6 +28,7 @@ import {
   apiSaveTask,
   apiDeleteTask
 } from './services/api';
+import { processAiPrompt } from './services/aiAssistant';
 
 export function App() {
   const [user, setUser] = useState(() => loadCurrentUserFromStorage());
@@ -46,6 +49,7 @@ export function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [taskToDeleteId, setTaskToDeleteId] = useState(null);
+  const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
 
   // Alert Dialog State
   const [alertDialog, setAlertDialog] = useState({
@@ -200,6 +204,41 @@ export function App() {
     setIsTimerOpen(true);
   };
 
+  // AI Assistant Action Handler
+  const handleExecuteAiAction = async (promptText) => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      throw new Error('Please sign in first to run AI automations.');
+    }
+
+    const aiResult = await processAiPrompt(promptText, tasks);
+
+    if (aiResult.actionType === 'CREATE_TASK' && aiResult.task) {
+      await handleSaveTask(aiResult.task);
+    } else if (aiResult.actionType === 'ADD_SUBTASKS' && aiResult.taskId) {
+      const target = tasks.find((t) => t.id === aiResult.taskId);
+      if (target) {
+        const mergedSubtasks = [...(target.subtasks || []), ...aiResult.subtasks];
+        const updated = { ...target, subtasks: mergedSubtasks };
+        await handleSaveTask(updated);
+      }
+    } else if (aiResult.actionType === 'COMPLETE_ALL' && aiResult.taskIds) {
+      for (const id of aiResult.taskIds) {
+        const target = tasks.find((t) => t.id === id);
+        if (target) {
+          await handleSaveTask({ ...target, completed: true });
+        }
+      }
+    } else if (aiResult.actionType === 'DELETE_COMPLETED' && aiResult.taskIds) {
+      for (const id of aiResult.taskIds) {
+        await apiDeleteTask(user.id, id);
+      }
+      setTasks((prev) => prev.filter((t) => !aiResult.taskIds.includes(t.id)));
+    }
+
+    return aiResult;
+  };
+
   const handleExportData = () => {
     const dataStr =
       'data:text/json;charset=utf-8,' +
@@ -317,6 +356,7 @@ export function App() {
               setTimerTask(null);
               setIsTimerOpen(true);
             }}
+            onOpenAiAssistant={() => setIsAiDrawerOpen(true)}
             onExportData={handleExportData}
             onImportData={handleImportData}
           />
@@ -395,7 +435,7 @@ export function App() {
                   ? "You haven't completed any tasks yet."
                   : activeTab === 'starred'
                   ? 'No starred tasks found.'
-                  : 'Your task list is empty. Click "New Task" to create one!'}
+                  : 'Your task list is empty. Click "New Task" or ask the AI Assistant to create one!'}
               </Typography>
               {!user ? (
                 <Button
@@ -424,7 +464,29 @@ export function App() {
           )}
         </Container>
 
-        {/* Modals */}
+        {/* Floating AI Assistant FAB Button */}
+        <Tooltip title="AI Task Automation Assistant">
+          <Fab
+            color="primary"
+            onClick={() => setIsAiDrawerOpen(true)}
+            sx={{
+              position: 'fixed',
+              bottom: 28,
+              right: 28,
+              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)',
+              boxShadow: '0 8px 24px rgba(99, 102, 241, 0.4)',
+              transition: 'transform 0.2s ease',
+              '&:hover': {
+                transform: 'scale(1.08)',
+                background: 'linear-gradient(135deg, #4f46e5 0%, #9333ea 50%, #db2777 100%)'
+              }
+            }}
+          >
+            <AutoAwesomeIcon />
+          </Fab>
+        </Tooltip>
+
+        {/* Modals & Drawers */}
         <TaskModal
           isOpen={isTaskModalOpen}
           onClose={() => setIsTaskModalOpen(false)}
@@ -473,6 +535,13 @@ export function App() {
           message={alertDialog.message}
           type={alertDialog.type}
           onClose={closeAlert}
+        />
+
+        <AiChatDrawer
+          isOpen={isAiDrawerOpen}
+          onClose={() => setIsAiDrawerOpen(false)}
+          onExecuteAiAction={handleExecuteAiAction}
+          tasks={tasks}
         />
       </Box>
     </ThemeProvider>

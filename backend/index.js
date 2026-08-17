@@ -108,6 +108,20 @@ app.delete('/api/tasks/:id', (req, res) => {
   }
 });
 
+// AI Endpoint
+app.post('/api/ai/process', (req, res) => {
+  try {
+    const { prompt, tasks } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required.' });
+    }
+    res.json({ status: 'success', receivedPrompt: prompt });
+  } catch (error) {
+    console.error('AI processing error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`TaskFlow Express SQL API running on http://localhost:${PORT}`);
 });

@@ -6,7 +6,8 @@ import {
   Button,
   IconButton,
   Tooltip,
-  Avatar
+  Avatar,
+  Badge
 } from '@mui/material';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -17,6 +18,7 @@ import UploadIcon from '@mui/icons-material/Upload';
 import TimerIcon from '@mui/icons-material/Timer';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 export const Header = ({
   user,
@@ -26,6 +28,7 @@ export const Header = ({
   onToggleTheme,
   onOpenNewTaskModal,
   onOpenTimer,
+  onOpenAiAssistant,
   onExportData,
   onImportData
 }) => {
@@ -96,6 +99,27 @@ export const Header = ({
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        <Tooltip title="AI Task Assistant (Automate Tasks)">
+          <Button
+            variant="outlined"
+            onClick={onOpenAiAssistant}
+            startIcon={<AutoAwesomeIcon sx={{ color: '#a855f7' }} />}
+            sx={{
+              borderRadius: 3,
+              borderColor: 'rgba(168, 85, 247, 0.5)',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.1) 100%)',
+              textTransform: 'none',
+              fontWeight: 700,
+              '&:hover': {
+                borderColor: '#a855f7',
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.2) 100%)'
+              }
+            }}
+          >
+            AI Assistant
+          </Button>
+        </Tooltip>
+
         <Tooltip title="Focus Timer (Pomodoro)">
           <IconButton onClick={onOpenTimer} color="inherit">
             <TimerIcon />
