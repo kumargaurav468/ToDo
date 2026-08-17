@@ -13,7 +13,7 @@
   --bg-input: rgba(15, 23, 42, 0.8);
   
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-color-hover: rgba(99, 102, 241, 0.4);
+  --border-color-hover: rgba(99, 102, 241, 0.5);
   
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
@@ -22,7 +22,7 @@
   --accent-primary: #6366f1;
   --accent-primary-hover: #4f46e5;
   --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
-  --accent-glow: rgba(99, 102, 241, 0.25);
+  --accent-glow: rgba(99, 102, 241, 0.35);
 
   --success-color: #10b981;
   --success-bg: rgba(16, 185, 129, 0.12);
@@ -96,7 +96,7 @@ body {
   overflow-x: hidden;
 }
 
-/* App Wrapper & Background Glows */
+/* App Wrapper & Dynamic Ambient Glows */
 .app-container {
   min-height: 100vh;
   position: relative;
@@ -107,23 +107,39 @@ body {
 .ambient-glow-1 {
   position: fixed;
   top: -10%;
-  left: 20%;
-  width: 450px;
-  height: 450px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+  left: 15%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.22) 0%, rgba(168, 85, 247, 0.08) 40%, rgba(0, 0, 0, 0) 70%);
+  filter: blur(40px);
   pointer-events: none;
   z-index: 0;
+  animation: floatOrb1 14s ease-in-out infinite alternate;
 }
 
 .ambient-glow-2 {
   position: fixed;
-  bottom: 10%;
-  right: 15%;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(236, 72, 153, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+  bottom: 5%;
+  right: 10%;
+  width: 550px;
+  height: 550px;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.18) 0%, rgba(99, 102, 241, 0.08) 45%, rgba(0, 0, 0, 0) 70%);
+  filter: blur(45px);
   pointer-events: none;
   z-index: 0;
+  animation: floatOrb2 16s ease-in-out infinite alternate;
+}
+
+@keyframes floatOrb1 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, 40px) scale(1.1); }
+  100% { transform: translate(-30px, 80px) scale(0.95); }
+}
+
+@keyframes floatOrb2 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-50px, -60px) scale(1.12); }
+  100% { transform: translate(40px, -20px) scale(0.9); }
 }
 
 .main-content {
@@ -148,6 +164,7 @@ body {
 
 .glass-panel:hover {
   border-color: var(--border-color-hover);
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.18);
 }
 
 /* Header Styles */
@@ -174,7 +191,13 @@ body {
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 4px 16px var(--accent-glow);
+  box-shadow: 0 4px 20px var(--accent-glow);
+  animation: pulseGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 4px 16px var(--accent-glow); transform: scale(1); }
+  100% { box-shadow: 0 8px 28px rgba(168, 85, 247, 0.5); transform: scale(1.04); }
 }
 
 .brand-title {
@@ -183,8 +206,16 @@ body {
   font-weight: 800;
   letter-spacing: -0.02em;
   background: var(--accent-gradient);
+  background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  animation: gradientShift 6s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .brand-subtitle {
@@ -216,14 +247,16 @@ body {
 
 .btn-primary {
   background: var(--accent-gradient);
+  background-size: 200% 200%;
   color: white;
-  box-shadow: 0 4px 16px var(--accent-glow);
+  box-shadow: 0 4px 18px var(--accent-glow);
+  animation: gradientShift 5s ease infinite;
 }
 
 .btn-primary:hover {
-  opacity: 0.92;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px var(--accent-glow);
+  opacity: 0.95;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(168, 85, 247, 0.45);
 }
 
 .btn-secondary {
@@ -235,6 +268,7 @@ body {
 .btn-secondary:hover {
   background: var(--bg-card-hover);
   border-color: var(--border-color-hover);
+  transform: translateY(-1px);
 }
 
 .btn-icon {
@@ -255,7 +289,8 @@ body {
 .btn-icon:hover {
   border-color: var(--accent-primary);
   color: var(--accent-primary);
-  transform: scale(1.05);
+  transform: scale(1.08) rotate(4deg);
+  box-shadow: 0 4px 14px var(--accent-glow);
 }
 
 /* Stats Component */
@@ -320,6 +355,13 @@ body {
   background: rgba(255, 255, 255, 0.03);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
+  transition: var(--transition-fast);
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-color-hover);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .stat-number {
@@ -447,7 +489,7 @@ body {
   gap: 14px;
 }
 
-/* Task Card */
+/* Task Card with 3D Hover & Glowing Accent */
 .task-card {
   padding: 18px 20px;
   display: flex;
@@ -455,11 +497,17 @@ body {
   gap: 12px;
   position: relative;
   overflow: hidden;
-  transition: var(--transition-normal);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.task-card:hover {
+  transform: translateY(-4px) scale(1.008);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.2);
 }
 
 .task-card.completed {
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
 .task-card.completed .task-title {
@@ -473,7 +521,7 @@ body {
   gap: 14px;
 }
 
-/* Custom Animated Checkbox */
+/* Custom Animated Checkbox with Glow Burst */
 .checkbox-btn {
   width: 24px;
   height: 24px;
@@ -486,17 +534,26 @@ body {
   justify-content: center;
   cursor: pointer;
   margin-top: 2px;
-  transition: var(--transition-fast);
+  transition: all 0.2s ease;
 }
 
 .checkbox-btn:hover {
   border-color: var(--accent-primary);
+  transform: scale(1.15);
 }
 
 .checkbox-btn.checked {
   background: var(--success-color);
   border-color: var(--success-color);
   color: white;
+  animation: checkPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+}
+
+@keyframes checkPop {
+  0% { transform: scale(0.6); }
+  50% { transform: scale(1.25); }
+  100% { transform: scale(1); }
 }
 
 .task-body {
@@ -544,6 +601,11 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: capitalize;
+  transition: transform 0.2s ease;
+}
+
+.badge:hover {
+  transform: scale(1.06);
 }
 
 .badge-priority-high {
@@ -602,6 +664,7 @@ body {
 .action-btn:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.1);
 }
 
 .action-btn.favorite.starred {
@@ -683,6 +746,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: floatAnimation 4s ease-in-out infinite;
+}
+
+@keyframes floatAnimation {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
 }
 
 .empty-title {

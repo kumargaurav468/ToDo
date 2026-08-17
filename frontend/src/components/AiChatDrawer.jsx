@@ -189,11 +189,12 @@ export const AiChatDrawer = ({
           display: 'flex',
           flexDirection: 'column',
           bgcolor: 'background.paper',
-          backgroundImage: 'none'
+          backgroundImage: 'none',
+          boxShadow: '-8px 0 32px rgba(0,0,0,0.3)'
         }
       }}
     >
-      {/* Drawer Header with Real-Time Agent Badge */}
+      {/* Drawer Header with Glowing Real-Time Agent Badge */}
       <Box
         sx={{
           p: 2.5,
@@ -202,7 +203,8 @@ export const AiChatDrawer = ({
           justifyContent: 'space-between',
           borderBottom: 1,
           borderColor: 'divider',
-          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.12) 100%)'
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.16) 0%, rgba(168, 85, 247, 0.16) 100%)',
+          boxShadow: '0 4px 20px rgba(99, 102, 241, 0.15)'
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -211,7 +213,8 @@ export const AiChatDrawer = ({
               bgcolor: 'transparent',
               background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)',
               color: 'white',
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4)'
+              boxShadow: '0 4px 16px rgba(168, 85, 247, 0.5)',
+              animation: 'pulseGlow 3s ease-in-out infinite alternate'
             }}
           >
             <AutoAwesomeIcon />
@@ -228,6 +231,7 @@ export const AiChatDrawer = ({
                   fontSize: '0.65rem',
                   fontWeight: 700,
                   letterSpacing: 0.5,
+                  boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)',
                   animation: 'pulse 2s infinite',
                   '@keyframes pulse': {
                     '0%': { opacity: 1 },
@@ -281,7 +285,7 @@ export const AiChatDrawer = ({
                 height: 32,
                 fontSize: '0.85rem',
                 bgcolor: msg.sender === 'user' ? 'primary.main' : 'secondary.main',
-                boxShadow: msg.sender === 'ai' ? '0 2px 8px rgba(168, 85, 247, 0.3)' : 'none'
+                boxShadow: msg.sender === 'ai' ? '0 4px 14px rgba(168, 85, 247, 0.4)' : '0 4px 14px rgba(99, 102, 241, 0.4)'
               }}
             >
               {msg.sender === 'user' ? <PersonIcon fontSize="small" /> : <SmartToyIcon fontSize="small" />}
@@ -296,7 +300,11 @@ export const AiChatDrawer = ({
                   color: msg.sender === 'user' ? 'white' : 'text.primary',
                   borderTopRightRadius: msg.sender === 'user' ? 4 : 12,
                   borderTopLeftRadius: msg.sender === 'user' ? 12 : 4,
-                  boxShadow: msg.sender === 'ai' ? '0 2px 10px rgba(0,0,0,0.05)' : 'none'
+                  boxShadow: msg.sender === 'ai' ? '0 4px 16px rgba(0,0,0,0.12)' : '0 4px 16px rgba(99, 102, 241, 0.3)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    transform: 'translateY(-1px)'
+                  }
                 }}
               >
                 <Typography
@@ -393,7 +401,7 @@ export const AiChatDrawer = ({
 
       <Divider />
 
-      {/* Input Box with Real-Time Typewriter Placeholder */}
+      {/* Input Box with Glowing Focus & Typewriter Placeholder */}
       <Box
         component="form"
         onSubmit={(e) => {
@@ -429,7 +437,18 @@ export const AiChatDrawer = ({
                     label="Insert"
                     size="small"
                     onClick={handleApplyAutomatedSuggestion}
-                    sx={{ height: 22, fontSize: '0.65rem', cursor: 'pointer' }}
+                    sx={{
+                      height: 22,
+                      fontSize: '0.65rem',
+                      cursor: 'pointer',
+                      bgcolor: 'rgba(99, 102, 241, 0.1)',
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: 'primary.main',
+                        color: 'white'
+                      }
+                    }}
                   />
                 </Tooltip>
               </InputAdornment>
@@ -437,7 +456,18 @@ export const AiChatDrawer = ({
           }}
           sx={{
             '& .MuiOutlinedInput-root': {
-              borderRadius: 3
+              borderRadius: 3.5,
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              background: 'rgba(99, 102, 241, 0.03)',
+              '&:hover': {
+                borderColor: 'primary.main',
+                boxShadow: '0 0 12px rgba(99, 102, 241, 0.25)'
+              },
+              '&.Mui-focused': {
+                borderColor: '#a855f7',
+                boxShadow: '0 0 18px rgba(168, 85, 247, 0.35)',
+                background: 'transparent'
+              }
             }
           }}
         />
@@ -448,8 +478,11 @@ export const AiChatDrawer = ({
           sx={{
             bgcolor: 'primary.main',
             color: 'white',
+            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
+            transition: 'all 0.2s ease',
             '&:hover': {
-              bgcolor: 'primary.dark'
+              bgcolor: 'primary.dark',
+              transform: 'scale(1.08)'
             },
             '&.Mui-disabled': {
               bgcolor: 'action.disabledBackground',
