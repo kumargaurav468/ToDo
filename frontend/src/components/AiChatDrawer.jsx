@@ -22,16 +22,16 @@ import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 
 const SUGGESTED_PROMPTS = [
   '👋 Good morning, what should I focus on next?',
+  '🧹 Clear chat',
   '🗑️ Delete task prepare presentation',
   '✅ I just finished writing the report',
-  '📅 Postpone work tasks to tomorrow',
-  '🧹 Clean up my completed tasks'
+  '📅 Postpone work tasks to tomorrow'
 ];
 
 const INITIAL_MESSAGE = {
   id: 'msg-init',
   sender: 'ai',
-  text: "Hello! I'm your TaskFlow AI Copilot 🤖. How can I help you today?\n\nYou can ask me to create tasks, delete tasks (e.g. 'Delete task report'), mark items completed, or reschedule dates!",
+  text: "Hello! I'm your TaskFlow AI Copilot 🤖. How can I help you today?\n\nYou can ask me to create tasks, delete tasks (e.g. 'Delete task report'), clear chat history ('Clear chat'), mark items completed, or reschedule dates!",
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 };
 
@@ -83,6 +83,11 @@ export const AiChatDrawer = ({
 
     try {
       const result = await onExecuteAiAction(promptText);
+
+      if (result.actionType === 'CLEAR_CHAT') {
+        handleClearChat();
+        return;
+      }
 
       const aiMsg = {
         id: `ai-${Date.now()}`,

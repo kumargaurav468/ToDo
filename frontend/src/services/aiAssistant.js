@@ -139,7 +139,26 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   const lower = text.toLowerCase();
 
   // -------------------------------------------------------------
-  // 1. CASUAL GREETINGS & CHIT-CHAT
+  // 1. CLEAR CHAT INTENT
+  // -------------------------------------------------------------
+  if (
+    lower === 'clear chat' ||
+    lower === 'clear chat history' ||
+    lower === 'clear history' ||
+    lower === 'clear the chat' ||
+    lower === 'reset chat' ||
+    lower === 'wipe chat' ||
+    lower.includes('clear chat') ||
+    lower.includes('reset chat')
+  ) {
+    return {
+      reply: "Chat history cleared! ✨ How can I help you today?",
+      actionType: 'CLEAR_CHAT'
+    };
+  }
+
+  // -------------------------------------------------------------
+  // 2. CASUAL GREETINGS & CHIT-CHAT
   // -------------------------------------------------------------
   if (
     lower === 'hi' ||
@@ -153,13 +172,13 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   ) {
     const greetingTime = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
     return {
-      reply: `${greetingTime}! 👋 I'm your TaskFlow AI Copilot. You can talk to me naturally like a human assistant!\n\nFor example, say:\n• *"Delete all tasks"* -> Clears entire task list\n• *"Delete task prepare presentation"* -> Deletes specific task\n• *"I finished writing the report"* -> Marks task complete\n• *"Remind me to call doctor tomorrow"* -> Creates task`,
+      reply: `${greetingTime}! 👋 I'm your TaskFlow AI Copilot. How can I help you today?\n\nYou can say:\n• *"Clear chat"* -> Wipes chat messages\n• *"Delete task prepare presentation"* -> Deletes specific task\n• *"I finished writing the report"* -> Marks task complete\n• *"Remind me to call doctor tomorrow"* -> Creates task`,
       actionType: 'NONE'
     };
   }
 
   // -------------------------------------------------------------
-  // 2. GRATITUDE / COMPLIMENTS
+  // 3. GRATITUDE / COMPLIMENTS
   // -------------------------------------------------------------
   if (lower.includes('thank') || lower.includes('awesome') || lower.includes('great job') || lower.includes('cool') || lower.includes('nice')) {
     return {
@@ -169,7 +188,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 3. TASK DELETION INTENT (Ensures delete commands never fall through!)
+  // 4. TASK DELETION INTENT
   // -------------------------------------------------------------
   if (
     lower.includes('delete') ||
@@ -185,7 +204,6 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       };
     }
 
-    // 3a. Delete all tasks (e.g. "delete tasks", "delete all tasks", "remove all tasks", "delete all", "delete task")
     const isGeneralDeleteAll =
       lower === 'delete tasks' ||
       lower === 'delete task' ||
@@ -205,7 +223,6 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       };
     }
 
-    // 3b. Delete completed tasks
     if (lower.includes('completed') || lower.includes('finished') || lower.includes('done')) {
       const completedTasks = existingTasks.filter((t) => t.completed);
       if (completedTasks.length === 0) {
@@ -221,7 +238,6 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       };
     }
 
-    // 3c. Delete category tasks (e.g. "delete all work tasks", "remove personal tasks")
     const matchedCategory = parseNaturalCategory(promptText);
     if (
       lower.includes('work') ||
@@ -241,7 +257,6 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       }
     }
 
-    // 3d. Delete specific task matching title
     const cleanPromptTitle = lower
       .replace(/^(delete task|remove task|delete the task|remove the task|delete|remove|trash|erase)\s+/i, '')
       .trim();
@@ -264,7 +279,6 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       };
     }
 
-    // If no matching title found, respond with clear error message instead of creating a task
     return {
       reply: `Could not find a task matching "${cleanPromptTitle || promptText}". Please check the task title and try again! 🔍`,
       actionType: 'NONE'
@@ -272,7 +286,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 4. "WHAT SHOULD I WORK ON NEXT?" / RECOMMENDATION
+  // 5. "WHAT SHOULD I WORK ON NEXT?" / RECOMMENDATION
   // -------------------------------------------------------------
   if (
     lower.includes('what should i do') ||
@@ -300,7 +314,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 5. TASK COMPLETION
+  // 6. TASK COMPLETION
   // -------------------------------------------------------------
   if (
     lower.includes('finished') ||
@@ -357,7 +371,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 6. RESCHEDULING / POSTPONING
+  // 7. RESCHEDULING / POSTPONING
   // -------------------------------------------------------------
   if (
     lower.includes('postpone') ||
@@ -387,7 +401,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 7. PRIORITY ELEVATION
+  // 8. PRIORITY ELEVATION
   // -------------------------------------------------------------
   if (
     lower.includes('urgent') ||
@@ -415,7 +429,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 8. SUBTASK BREAKDOWN
+  // 9. SUBTASK BREAKDOWN
   // -------------------------------------------------------------
   if (lower.includes('subtask') || lower.includes('break down') || lower.includes('split') || lower.includes('steps')) {
     const matchedTask = existingTasks.find((t) => lower.includes(t.title.toLowerCase()));
@@ -431,7 +445,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 9. STATUS / PRODUCTIVITY ADVICE & SUMMARIES
+  // 10. STATUS / PRODUCTIVITY ADVICE & SUMMARIES
   // -------------------------------------------------------------
   if (lower.includes('summary') || lower.includes('status') || lower.includes('overview') || lower.includes('advice') || lower.includes('coach')) {
     const total = existingTasks.length;
@@ -446,7 +460,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 10. NATURAL LANGUAGE TASK CREATION (Fallback for creative prompts)
+  // 11. NATURAL LANGUAGE TASK CREATION (Fallback for creative prompts)
   // -------------------------------------------------------------
   let cleanedTitle = text
     .replace(/^(i need to|i have to|remind me to|add a task to|create a task to|add task|create task|add|create|schedule|set a task to)\s+/i, '')
