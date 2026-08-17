@@ -234,6 +234,10 @@ export function App() {
         await apiDeleteTask(user.id, id);
       }
       setTasks((prev) => prev.filter((t) => !aiResult.taskIds.includes(t.id)));
+    } else if (aiResult.actionType === 'UPDATE_TASKS' && aiResult.updatedTasks) {
+      for (const t of aiResult.updatedTasks) {
+        await handleSaveTask(t);
+      }
     }
 
     return aiResult;
