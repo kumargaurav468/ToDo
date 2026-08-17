@@ -92,32 +92,42 @@ export const AiChatDrawer = ({
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const rec = new SpeechRecognition();
-      rec.continuous = false;
+      rec.continuous = true;
       rec.interimResults = true;
       rec.lang = 'en-US';
 
       rec.onstart = () => {
         setIsListening(true);
-        setVoiceStatus('🎙️ Listening... Speak now');
+        setVoiceStatus('🎙️ Live Dictation Active... Speak naturally');
       };
 
       rec.onresult = (event) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+        let liveTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          liveTranscript += event.results[i][0].transcript;
         }
-        setInput(transcript);
+        setInput(liveTranscript);
       };
 
       rec.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        setVoiceStatus(`Voice error: ${event.error}`);
+        if (event.error !== 'no-speech') {
+          console.error('Speech recognition error:', event.error);
+          setVoiceStatus(`Voice notice: ${event.error}`);
+        }
       };
 
       rec.onend = () => {
-        setIsListening(false);
-        setVoiceStatus('');
+        // Automatically restart if user hasn't explicitly stopped listening
+        setIsListening((prev) => {
+          if (prev) {
+            try {
+              rec.start();
+            } catch {
+              // ignore if already started
+            }
+          }
+          return prev;
+        });
       };
 
       recognitionRef.current = rec;
