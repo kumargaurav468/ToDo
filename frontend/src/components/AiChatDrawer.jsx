@@ -19,10 +19,11 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
 
 const SUGGESTED_PROMPTS = [
-  '✅ Complete all work tasks',
-  '⚡ Create a high priority task due tomorrow',
-  '📋 Break down task into subtasks',
-  '🧹 Clear all completed tasks'
+  '👋 Good morning, what should I focus on next?',
+  '✅ I just finished writing the report',
+  '📅 I am busy today, postpone work tasks to tomorrow',
+  '🔥 Make work tasks top priority',
+  '🧹 Clean up my completed tasks'
 ];
 
 export const AiChatDrawer = ({
@@ -36,7 +37,7 @@ export const AiChatDrawer = ({
     {
       id: 'msg-init',
       sender: 'ai',
-      text: "Hello! I'm your TaskFlow AI Assistant 🤖. You can ask me to create tasks, mark tasks as completed (e.g. 'Mark Work tasks complete'), generate subtask checklists, or clear finished items!",
+      text: "Hello! I'm your TaskFlow AI Copilot 🤖. You can talk to me naturally! Try saying things like:\n\n• *'I just finished writing the report'*\n• *'Remind me to buy groceries tonight'*\n• *'What should I work on next?'*\n• *'Push my work tasks to tomorrow'*",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -133,10 +134,10 @@ export const AiChatDrawer = ({
           </Avatar>
           <Box>
             <Typography variant="subtitle1" fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              TaskFlow AI Assistant
+              TaskFlow AI Copilot
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Automate task management with AI
+              Natural Language Assistant
             </Typography>
           </Box>
         </Box>
@@ -145,10 +146,10 @@ export const AiChatDrawer = ({
         </IconButton>
       </Box>
 
-      {/* Suggested Quick Prompts */}
+      {/* Suggested Natural Language Prompts */}
       <Box sx={{ p: 2, bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-          Suggested Automations:
+          Try Natural Prompts:
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           {SUGGESTED_PROMPTS.map((prompt, idx) => (
@@ -274,7 +275,7 @@ export const AiChatDrawer = ({
         }}
       >
         <TextField
-          placeholder="Ask AI to complete tasks, create items..."
+          placeholder="Talk naturally: 'I finished writing report'..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           fullWidth

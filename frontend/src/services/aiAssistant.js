@@ -1,25 +1,31 @@
 /**
- * AI Assistant Copilot Engine for TaskFlow
- * Expanded natural language understanding & automated workflow execution.
+ * TaskFlow AI Natural Language Copilot Engine
+ * Advanced conversational understanding, intent extraction, and automated task execution.
  */
 
-// Helper to determine relative dates
-const parseDueDate = (text) => {
+// Helper to extract relative dates from natural language phrasing
+const parseNaturalDate = (text) => {
   const lower = text.toLowerCase();
   const today = new Date();
   
-  if (lower.includes('today')) {
+  if (lower.includes('today') || lower.includes('this evening') || lower.includes('tonight')) {
     return today.toISOString().split('T')[0];
   }
-  if (lower.includes('tomorrow')) {
+  if (lower.includes('tomorrow') || lower.includes('next day')) {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow.toISOString().split('T')[0];
   }
-  if (lower.includes('next week') || lower.includes('in a week')) {
+  if (lower.includes('next week') || lower.includes('in a week') || lower.includes('7 days')) {
     const nextWeek = new Date(today);
     nextWeek.setDate(nextWeek.getDate() + 7);
     return nextWeek.toISOString().split('T')[0];
+  }
+  if (lower.includes('this weekend') || lower.includes('on weekend')) {
+    const day = today.getDay();
+    const diff = today.getDate() + (6 - day);
+    const saturday = new Date(today.setDate(diff));
+    return saturday.toISOString().split('T')[0];
   }
   
   const dateMatch = text.match(/\d{4}-\d{2}-\d{2}/);
@@ -28,233 +34,186 @@ const parseDueDate = (text) => {
   return null;
 };
 
-// Helper to extract priority
-const parsePriority = (text) => {
+// Helper to detect priority level from conversational tone
+const parseNaturalPriority = (text) => {
   const lower = text.toLowerCase();
-  if (lower.includes('high priority') || lower.includes('urgent') || lower.includes('asap') || lower.includes('important') || lower.includes('high')) {
+  if (
+    lower.includes('high priority') ||
+    lower.includes('urgent') ||
+    lower.includes('asap') ||
+    lower.includes('important') ||
+    lower.includes('critical') ||
+    lower.includes('top priority') ||
+    lower.includes('fire') ||
+    lower.includes('crucial')
+  ) {
     return 'high';
   }
-  if (lower.includes('low priority') || lower.includes('minor') || lower.includes('easy') || lower.includes('low')) {
+  if (
+    lower.includes('low priority') ||
+    lower.includes('minor') ||
+    lower.includes('whenever') ||
+    lower.includes('eventually') ||
+    lower.includes('easy') ||
+    lower.includes('low')
+  ) {
     return 'low';
   }
   return 'medium';
 };
 
-// Helper to extract category
-const parseCategory = (text) => {
+// Helper to extract category from natural context
+const parseNaturalCategory = (text) => {
   const lower = text.toLowerCase();
-  if (lower.includes('work') || lower.includes('office') || lower.includes('client') || lower.includes('project') || lower.includes('meeting') || lower.includes('presentation') || lower.includes('code') || lower.includes('app')) {
+  if (
+    lower.includes('work') ||
+    lower.includes('office') ||
+    lower.includes('client') ||
+    lower.includes('project') ||
+    lower.includes('meeting') ||
+    lower.includes('presentation') ||
+    lower.includes('code') ||
+    lower.includes('app') ||
+    lower.includes('report') ||
+    lower.includes('boss') ||
+    lower.includes('email')
+  ) {
     return 'Work';
   }
-  if (lower.includes('personal') || lower.includes('home') || lower.includes('family') || lower.includes('house')) {
+  if (lower.includes('personal') || lower.includes('home') || lower.includes('family') || lower.includes('house') || lower.includes('mom') || lower.includes('dad')) {
     return 'Personal';
   }
-  if (lower.includes('health') || lower.includes('gym') || lower.includes('fitness') || lower.includes('doctor') || lower.includes('workout') || lower.includes('run') || lower.includes('diet')) {
+  if (lower.includes('health') || lower.includes('gym') || lower.includes('fitness') || lower.includes('doctor') || lower.includes('workout') || lower.includes('run') || lower.includes('diet') || lower.includes('meds')) {
     return 'Health';
   }
-  if (lower.includes('study') || lower.includes('read') || lower.includes('course') || lower.includes('learn') || lower.includes('exam') || lower.includes('book')) {
+  if (lower.includes('study') || lower.includes('read') || lower.includes('course') || lower.includes('learn') || lower.includes('exam') || lower.includes('book') || lower.includes('homework')) {
     return 'Study';
   }
-  if (lower.includes('shop') || lower.includes('buy') || lower.includes('grocery') || lower.includes('store') || lower.includes('market')) {
+  if (lower.includes('shop') || lower.includes('buy') || lower.includes('grocery') || lower.includes('store') || lower.includes('market') || lower.includes('purchase')) {
     return 'Shopping';
   }
-  if (lower.includes('finance') || lower.includes('bill') || lower.includes('pay') || lower.includes('tax') || lower.includes('money') || lower.includes('budget')) {
+  if (lower.includes('finance') || lower.includes('bill') || lower.includes('pay') || lower.includes('tax') || lower.includes('money') || lower.includes('budget') || lower.includes('rent')) {
     return 'Finance';
   }
   return 'General';
 };
 
-// Generate smart breakdown subtasks based on title
+// Subtask breakdown generator
 export const generateSmartSubtasks = (title) => {
   const lower = title.toLowerCase();
-  if (lower.includes('website') || lower.includes('app') || lower.includes('code') || lower.includes('project')) {
+  if (lower.includes('website') || lower.includes('app') || lower.includes('code') || lower.includes('project') || lower.includes('software')) {
     return [
-      { id: `sub-${Date.now()}-1`, title: 'Define requirements and user flow', completed: false },
-      { id: `sub-${Date.now()}-2`, title: 'Create UI mockups and design assets', completed: false },
-      { id: `sub-${Date.now()}-3`, title: 'Implement frontend components & backend API', completed: false },
-      { id: `sub-${Date.now()}-4`, title: 'Test thoroughly and deploy to production', completed: false }
+      { id: `sub-${Date.now()}-1`, title: 'Define scope, requirements & architecture', completed: false },
+      { id: `sub-${Date.now()}-2`, title: 'Design UI mockups & UX components', completed: false },
+      { id: `sub-${Date.now()}-3`, title: 'Implement frontend logic & API endpoints', completed: false },
+      { id: `sub-${Date.now()}-4`, title: 'Perform QA testing & launch to production', completed: false }
     ];
   }
-  if (lower.includes('presentation') || lower.includes('deck') || lower.includes('pitch')) {
+  if (lower.includes('presentation') || lower.includes('deck') || lower.includes('pitch') || lower.includes('meeting')) {
     return [
-      { id: `sub-${Date.now()}-1`, title: 'Draft key slide outline & messaging', completed: false },
-      { id: `sub-${Date.now()}-2`, title: 'Gather relevant data metrics and graphics', completed: false },
-      { id: `sub-${Date.now()}-3`, title: 'Practice talk track and timing', completed: false }
+      { id: `sub-${Date.now()}-1`, title: 'Draft key narrative outline & agenda', completed: false },
+      { id: `sub-${Date.now()}-2`, title: 'Gather supporting charts, statistics & visual assets', completed: false },
+      { id: `sub-${Date.now()}-3`, title: 'Rehearse delivery and timing', completed: false }
     ];
   }
-  if (lower.includes('trip') || lower.includes('travel') || lower.includes('vacation')) {
+  if (lower.includes('trip') || lower.includes('travel') || lower.includes('vacation') || lower.includes('flight')) {
     return [
-      { id: `sub-${Date.now()}-1`, title: 'Book flights and hotel accommodation', completed: false },
-      { id: `sub-${Date.now()}-2`, title: 'Create daily itinerary and activity list', completed: false },
-      { id: `sub-${Date.now()}-3`, title: 'Pack clothes, toiletries, and travel documents', completed: false }
-    ];
-  }
-  if (lower.includes('party') || lower.includes('event') || lower.includes('dinner')) {
-    return [
-      { id: `sub-${Date.now()}-1`, title: 'Send invitations to guest list', completed: false },
-      { id: `sub-${Date.now()}-2`, title: 'Order food, drinks, and party supplies', completed: false },
-      { id: `sub-${Date.now()}-3`, title: 'Set up venue space & sound playlist', completed: false }
+      { id: `sub-${Date.now()}-1`, title: 'Book transport, flights & hotel stay', completed: false },
+      { id: `sub-${Date.now()}-2`, title: 'Prepare day-by-day itinerary & reservations', completed: false },
+      { id: `sub-${Date.now()}-3`, title: 'Pack clothes, electronics & travel documents', completed: false }
     ];
   }
 
   return [
-    { id: `sub-${Date.now()}-1`, title: 'Initial planning & research', completed: false },
-    { id: `sub-${Date.now()}-2`, title: 'Execute main task action items', completed: false },
-    { id: `sub-${Date.now()}-3`, title: 'Final review and verification', completed: false }
+    { id: `sub-${Date.now()}-1`, title: 'Initial setup & goal definition', completed: false },
+    { id: `sub-${Date.now()}-2`, title: 'Execute main task deliverables', completed: false },
+    { id: `sub-${Date.now()}-3`, title: 'Review output & confirm completion', completed: false }
   ];
 };
 
 /**
- * Main AI Prompt Processor Engine
+ * Natural Language Processor Engine
  */
 export const processAiPrompt = async (promptText, existingTasks = []) => {
-  const lower = promptText.toLowerCase().trim();
+  const text = promptText.trim();
+  const lower = text.toLowerCase();
 
   // -------------------------------------------------------------
-  // FEATURE 1: AI PRODUCTIVITY COACH & HABIT INSIGHTS
+  // 1. CASUAL GREETINGS & CHIT-CHAT
   // -------------------------------------------------------------
   if (
-    lower.includes('advice') ||
-    lower.includes('coach') ||
-    lower.includes('motivation') ||
-    lower.includes('insight') ||
-    lower.includes('tip') ||
-    lower.includes('habit')
+    lower === 'hi' ||
+    lower === 'hello' ||
+    lower === 'hey' ||
+    lower.startsWith('good morning') ||
+    lower.startsWith('good afternoon') ||
+    lower.startsWith('good evening') ||
+    lower.includes('how are you') ||
+    lower.includes('who are you')
   ) {
-    const total = existingTasks.length;
-    const completed = existingTasks.filter((t) => t.completed).length;
-    const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-    const highPending = existingTasks.filter((t) => !t.completed && t.priority === 'high').length;
-
-    let coachTip = `💡 **TaskFlow AI Productivity Coach**:\n\nYour completion rate is **${rate}%** (${completed}/${total} tasks completed).\n`;
-    if (highPending > 0) {
-      coachTip += `⚠️ You have **${highPending} High Priority** task${highPending > 1 ? 's' : ''} pending. Focus on tackling your highest impact item first using the 25-minute Pomodoro timer! ⏱️`;
-    } else if (rate >= 80) {
-      coachTip += `🌟 Outstanding momentum! You are crushing your goals today. Keep up the great focus! 🚀`;
-    } else {
-      coachTip += `🎯 Try breaking complex goals down into subtasks with step-by-step checklist items to build momentum!`;
-    }
-
+    const greetingTime = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
     return {
-      reply: coachTip,
+      reply: `${greetingTime}! 👋 I'm your TaskFlow AI Copilot. You can talk to me naturally like a human assistant!\n\nFor example, say:\n• *"I just finished writing the report"* -> Marks task complete\n• *"Remind me to call the doctor tomorrow at high priority"* -> Creates task\n• *"I'm super busy, postpone work tasks to next week"* -> Reschedules dates\n• *"What should I focus on next?"* -> Gives smart recommendation`,
       actionType: 'NONE'
     };
   }
 
   // -------------------------------------------------------------
-  // FEATURE 2: AI RESCHEDULER / POSTPONE DUE DATES
+  // 2. GRATITUDE / COMPLIMENTS
   // -------------------------------------------------------------
-  if (
-    lower.includes('reschedule') ||
-    lower.includes('postpone') ||
-    lower.includes('move date') ||
-    lower.includes('delay') ||
-    lower.includes('due tomorrow') ||
-    lower.includes('due next week')
-  ) {
-    const newDate = parseDueDate(promptText) || new Date(Date.now() + 86400000).toISOString().split('T')[0];
-    const categoryTarget = parseCategory(promptText);
-
-    // Filter target pending tasks
-    const pendingToReschedule = existingTasks.filter((t) => {
-      if (t.completed) return false;
-      if (lower.includes('work') || lower.includes('personal') || lower.includes('health') || lower.includes('study')) {
-        return t.category?.toLowerCase() === categoryTarget.toLowerCase();
-      }
-      return true;
-    });
-
-    if (pendingToReschedule.length === 0) {
-      return {
-        reply: "No matching pending tasks found to reschedule!",
-        actionType: 'NONE'
-      };
-    }
-
+  if (lower.includes('thank') || lower.includes('awesome') || lower.includes('great job') || lower.includes('cool') || lower.includes('nice')) {
     return {
-      reply: `📅 Rescheduled ${pendingToReschedule.length} task${pendingToReschedule.length > 1 ? 's' : ''} to **${newDate}**!`,
-      actionType: 'UPDATE_TASKS',
-      updatedTasks: pendingToReschedule.map((t) => ({ ...t, dueDate: newDate }))
+      reply: "You're very welcome! 😊 I'm always here to help keep your productivity flow smooth and organized. Let me know if you need anything else!",
+      actionType: 'NONE'
     };
   }
 
   // -------------------------------------------------------------
-  // FEATURE 3: AI PRIORITY BOOSTER
+  // 3. "WHAT SHOULD I WORK ON NEXT?" / NEXT FOCUS RECOMMENDATION
   // -------------------------------------------------------------
   if (
-    lower.includes('make high priority') ||
-    lower.includes('promote') ||
-    lower.includes('set priority to high') ||
-    lower.includes('urgent') ||
-    lower.includes('boost priority')
+    lower.includes('what should i do') ||
+    lower.includes('what next') ||
+    lower.includes('focus on next') ||
+    lower.includes('feel stuck') ||
+    lower.includes('where to start') ||
+    lower.includes('recommend')
   ) {
-    const matchedCategory = parseCategory(promptText);
-    const targetTasks = existingTasks.filter((t) => {
-      if (t.completed) return false;
-      if (lower.includes('work') || lower.includes('personal') || lower.includes('health')) {
-        return t.category?.toLowerCase() === matchedCategory.toLowerCase();
-      }
-      return t.priority !== 'high';
-    });
+    const pendingHigh = existingTasks.filter((t) => !t.completed && t.priority === 'high');
+    const pendingAny = existingTasks.filter((t) => !t.completed);
 
-    if (targetTasks.length === 0) {
+    if (pendingAny.length === 0) {
       return {
-        reply: "No pending tasks required priority promotion!",
+        reply: "🎉 You have zero pending tasks! Your task list is totally clear. Take a well-deserved break or ask me to add new goals!",
         actionType: 'NONE'
       };
     }
 
+    const topTask = pendingHigh.length > 0 ? pendingHigh[0] : pendingAny[0];
     return {
-      reply: `🔥 Promoted ${targetTasks.length} task${targetTasks.length > 1 ? 's' : ''} to **High Priority**!`,
-      actionType: 'UPDATE_TASKS',
-      updatedTasks: targetTasks.map((t) => ({ ...t, priority: 'high', starred: true }))
+      reply: `🎯 **Recommended Focus**:\n\nI suggest starting with **"${topTask.title}"** ${topTask.category ? `(${topTask.category})` : ''} ${topTask.priority === 'high' ? '🔥 High Priority' : ''}.\n\nTip: Use the Pomodoro timer tool at the top to tackle it in a 25-minute focus session! ⏱️`,
+      actionType: 'NONE'
     };
   }
 
   // -------------------------------------------------------------
-  // FEATURE 4: AI AUTO-CATEGORIZATION OF UNORGANIZED TASKS
+  // 4. NATURAL LANGUAGE TASK COMPLETION (e.g. "I finished...", "Done with...", "Mark ... complete")
   // -------------------------------------------------------------
   if (
-    lower.includes('categorize') ||
-    lower.includes('auto tag') ||
-    lower.includes('organize categories') ||
-    lower.includes('fix categories')
-  ) {
-    const unorganized = existingTasks.filter((t) => !t.category || t.category === 'General');
-    if (unorganized.length === 0) {
-      return {
-        reply: "All your tasks already have proper categories assigned! 📁",
-        actionType: 'NONE'
-      };
-    }
-
-    const updated = unorganized.map((t) => ({
-      ...t,
-      category: parseCategory(t.title)
-    }));
-
-    return {
-      reply: `🏷️ Automatically categorized ${updated.length} task${updated.length > 1 ? 's' : ''} based on title keywords!`,
-      actionType: 'UPDATE_TASKS',
-      updatedTasks: updated
-    };
-  }
-
-  // -------------------------------------------------------------
-  // FEATURE 5: AI MARK TASKS AS COMPLETED
-  // -------------------------------------------------------------
-  if (
-    lower.includes('complete') ||
-    lower.includes('mark done') ||
-    lower.includes('finish') ||
+    lower.includes('finished') ||
+    lower.includes('completed') ||
+    lower.includes('done with') ||
     lower.includes('check off') ||
-    lower.includes('done')
+    lower.includes('mark done') ||
+    lower.includes('mark complete') ||
+    lower.includes('wrap up')
   ) {
-    if (lower.includes('complete all') || lower.includes('finish all') || lower.includes('mark all')) {
+    // 4a. Complete all
+    if (lower.includes('everything') || lower.includes('all tasks') || lower.includes('complete all')) {
       const activeTasks = existingTasks.filter((t) => !t.completed);
       if (activeTasks.length === 0) {
         return {
-          reply: "All your tasks are already marked as completed! Great job! 🎉",
+          reply: "All your tasks are already marked as completed! Outstanding work! 🎉",
           actionType: 'NONE'
         };
       }
@@ -265,6 +224,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       };
     }
 
+    // 4b. Find matching task by keywords in user prompt
     const targetTask = existingTasks.find((t) => {
       const titleLower = t.title.toLowerCase();
       return lower.includes(titleLower) || titleLower.split(' ').some((word) => word.length > 3 && lower.includes(word));
@@ -278,19 +238,18 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
         };
       }
       return {
-        reply: `Marked task **"${targetTask.title}"** as completed! ✅`,
+        reply: `Awesome! Marked task **"${targetTask.title}"** as completed! ✅`,
         actionType: 'COMPLETE_ALL',
         taskIds: [targetTask.id]
       };
     }
 
-    const matchedCategory = parseCategory(promptText);
-    const categoryTasks = existingTasks.filter(
-      (t) => !t.completed && t.category?.toLowerCase() === matchedCategory.toLowerCase()
-    );
+    // 4c. Complete by category
+    const cat = parseNaturalCategory(promptText);
+    const categoryTasks = existingTasks.filter((t) => !t.completed && t.category?.toLowerCase() === cat.toLowerCase());
     if (categoryTasks.length > 0) {
       return {
-        reply: `Marked ${categoryTasks.length} task${categoryTasks.length > 1 ? 's' : ''} in **${matchedCategory}** as completed! ✅`,
+        reply: `Marked ${categoryTasks.length} task${categoryTasks.length > 1 ? 's' : ''} in **${cat}** as completed! ✅`,
         actionType: 'COMPLETE_ALL',
         taskIds: categoryTasks.map((t) => t.id)
       };
@@ -298,32 +257,86 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // FEATURE 6: CLEAR / DELETE COMPLETED TASKS
+  // 5. RESCHEDULING / POSTPONING (e.g. "I'm busy, push work to tomorrow", "delay health tasks")
   // -------------------------------------------------------------
-  if (lower.includes('clear completed') || lower.includes('delete completed') || lower.includes('remove finished') || lower.includes('delete finished')) {
-    const completedTasks = existingTasks.filter((t) => t.completed);
-    if (completedTasks.length === 0) {
+  if (
+    lower.includes('postpone') ||
+    lower.includes('reschedule') ||
+    lower.includes('push') ||
+    lower.includes('delay') ||
+    lower.includes('move to')
+  ) {
+    const newDate = parseNaturalDate(promptText) || new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const cat = parseNaturalCategory(promptText);
+
+    const pendingToReschedule = existingTasks.filter((t) => {
+      if (t.completed) return false;
+      if (lower.includes('work') || lower.includes('personal') || lower.includes('health') || lower.includes('study')) {
+        return t.category?.toLowerCase() === cat.toLowerCase();
+      }
+      return true;
+    });
+
+    if (pendingToReschedule.length > 0) {
       return {
-        reply: "You don't have any completed tasks to clear right now!",
-        actionType: 'NONE'
+        reply: `📅 Rescheduled ${pendingToReschedule.length} task${pendingToReschedule.length > 1 ? 's' : ''} to **${newDate}**!`,
+        actionType: 'UPDATE_TASKS',
+        updatedTasks: pendingToReschedule.map((t) => ({ ...t, dueDate: newDate }))
       };
     }
-    return {
-      reply: `Cleared ${completedTasks.length} completed task${completedTasks.length > 1 ? 's' : ''} from your task list! 🧹`,
-      actionType: 'DELETE_COMPLETED',
-      taskIds: completedTasks.map((t) => t.id)
-    };
   }
 
   // -------------------------------------------------------------
-  // FEATURE 7: GENERATE SUBTASKS FOR EXISTING TASK
+  // 6. PRIORITY ELEVATION (e.g. "make work tasks urgent", "promote presentation to high priority")
   // -------------------------------------------------------------
-  if (lower.includes('subtask') || lower.includes('break down') || lower.includes('split task')) {
+  if (
+    lower.includes('urgent') ||
+    lower.includes('high priority') ||
+    lower.includes('top priority') ||
+    lower.includes('promote') ||
+    lower.includes('make high')
+  ) {
+    const cat = parseNaturalCategory(promptText);
+    const targetTasks = existingTasks.filter((t) => {
+      if (t.completed) return false;
+      if (lower.includes('work') || lower.includes('personal') || lower.includes('health')) {
+        return t.category?.toLowerCase() === cat.toLowerCase();
+      }
+      return t.priority !== 'high';
+    });
+
+    if (targetTasks.length > 0) {
+      return {
+        reply: `🔥 Elevated ${targetTasks.length} task${targetTasks.length > 1 ? 's' : ''} to **High Priority**!`,
+        actionType: 'UPDATE_TASKS',
+        updatedTasks: targetTasks.map((t) => ({ ...t, priority: 'high', starred: true }))
+      };
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 7. CLEARING / DELETING FINISHED ITEMS
+  // -------------------------------------------------------------
+  if (lower.includes('clear') || lower.includes('clean up') || lower.includes('delete completed') || lower.includes('remove done')) {
+    const completedTasks = existingTasks.filter((t) => t.completed);
+    if (completedTasks.length > 0) {
+      return {
+        reply: `Cleared ${completedTasks.length} finished task${completedTasks.length > 1 ? 's' : ''} from your workspace! 🧹`,
+        actionType: 'DELETE_COMPLETED',
+        taskIds: completedTasks.map((t) => t.id)
+      };
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 8. SUBTASK BREAKDOWN
+  // -------------------------------------------------------------
+  if (lower.includes('subtask') || lower.includes('break down') || lower.includes('split') || lower.includes('steps')) {
     const matchedTask = existingTasks.find((t) => lower.includes(t.title.toLowerCase()));
     if (matchedTask) {
       const generated = generateSmartSubtasks(matchedTask.title);
       return {
-        reply: `Generated ${generated.length} actionable subtasks for "${matchedTask.title}"! 📋`,
+        reply: `Generated ${generated.length} checklist steps for **"${matchedTask.title}"**! 📋`,
         actionType: 'ADD_SUBTASKS',
         taskId: matchedTask.id,
         subtasks: generated
@@ -332,46 +345,35 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // FEATURE 8: TASK SUMMARIZATION & OVERVIEW
+  // 9. STATUS / PRODUCTIVITY ADVICE & SUMMARIES
   // -------------------------------------------------------------
-  if (lower.includes('summary') || lower.includes('status') || lower.includes('what do i have') || lower.includes('show my tasks') || lower.includes('overview')) {
+  if (lower.includes('summary') || lower.includes('status') || lower.includes('overview') || lower.includes('advice') || lower.includes('coach')) {
     const total = existingTasks.length;
     const completed = existingTasks.filter((t) => t.completed).length;
     const highPriority = existingTasks.filter((t) => t.priority === 'high' && !t.completed).length;
     const pending = total - completed;
 
-    let response = `Here is your productivity overview:\n• Total Tasks: **${total}**\n• Pending: **${pending}**\n• Completed: **${completed}**`;
-    if (highPriority > 0) {
-      response += `\n• High Priority Pending: **${highPriority}** ⚠️`;
-    }
     return {
-      reply: response,
+      reply: `📊 **Productivity Summary**:\n• Total Tasks: **${total}**\n• Active Pending: **${pending}**\n• Completed: **${completed}**${highPriority > 0 ? `\n• High Priority Pending: **${highPriority}** ⚡` : ''}`,
       actionType: 'NONE'
     };
   }
 
   // -------------------------------------------------------------
-  // FEATURE 9: CREATE NEW TASK
+  // 10. NATURAL LANGUAGE TASK CREATION (Fallback for creative prompts)
   // -------------------------------------------------------------
-  let cleanedTitle = promptText
-    .replace(/^(add task|create task|add|create|remind me to|schedule|make a task to|set a task to)\s+/i, '')
+  let cleanedTitle = text
+    .replace(/^(i need to|i have to|remind me to|add a task to|create a task to|add task|create task|add|create|schedule|set a task to)\s+/i, '')
     .trim();
 
-  if (cleanedTitle.length < 3 && (lower.includes('hi') || lower.includes('hello') || lower.includes('help'))) {
-    return {
-      reply: "Hello! I'm your TaskFlow AI Assistant 🤖. Here are all the powerful features I can handle:\n\n• **Mark Tasks Completed**: *'Mark work tasks as completed'*\n• **Priority Booster**: *'Promote work tasks to high priority'*\n• **Task Rescheduler**: *'Postpone work tasks to tomorrow'*\n• **Auto Categorize**: *'Categorize my tasks'*\n• **Subtask Breakdown**: *'Break down task Build App into subtasks'*\n• **Productivity Advice**: *'Give me productivity coach advice'*\n• **Create Tasks**: *'Add a high priority work task due tomorrow'*",
-      actionType: 'NONE'
-    };
-  }
-
   if (!cleanedTitle) {
-    cleanedTitle = promptText;
+    cleanedTitle = text;
   }
 
-  const priority = parsePriority(promptText);
-  const category = parseCategory(promptText);
-  const dueDate = parseDueDate(promptText);
-  const shouldAddSubtasks = lower.includes('subtask') || lower.includes('breakdown') || lower.includes('with steps');
+  const priority = parseNaturalPriority(text);
+  const category = parseNaturalCategory(text);
+  const dueDate = parseNaturalDate(text);
+  const shouldAddSubtasks = lower.includes('subtask') || lower.includes('breakdown') || lower.includes('steps');
 
   const newTask = {
     id: `task-${Date.now()}`,
