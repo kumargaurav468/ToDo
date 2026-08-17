@@ -1,10 +1,15 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const dbPath = path.join(__dirname, 'taskflow.sqlite');
+
+// On Vercel serverless functions, root filesystem is read-only; use /tmp directory
+const isVercel = Boolean(process.env.VERCEL || process.env.NOW_BUILDER);
+const dbDir = isVercel ? '/tmp' : __dirname;
+const dbPath = path.join(dbDir, 'taskflow.sqlite');
 
 export const db = new DatabaseSync(dbPath);
 
@@ -44,7 +49,7 @@ export const initDatabase = () => {
       user_id TEXT NOT NULL,
       title TEXT NOT NULL,
       notes TEXT,
-      category TEXT,
+      category TEXT DEFAULT 'General',
       priority TEXT DEFAULT 'medium',
       due_date TEXT,
       completed INTEGER DEFAULT 0,
@@ -64,25 +69,55 @@ export const initDatabase = () => {
       FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
     );
   `);
-
-  // Delete any existing demo user
-  db.exec("DELETE FROM users WHERE email = 'demo@taskflow.io' OR id = 'demo-user-1';");
-
-  console.log('SQL Database initialized successfully at', dbPath);
 };
 
-// Database Query Helpers
-export const getUserByEmail = (email) => {
-  const stmt = db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)');
-  return stmt.get(email);
+// Auto-initialize DB schema
+initDatabase();
+
+// ------------------------------------------------------------------
+// APP SETTINGS / SESSION LOGIC
+// ------------------------------------------------------------------
+export const getAppSetting = (key) => {
+  const stmt = db.prepare(`SELECT value FROM app_settings WHERE key = ?`);
+  const row = stmt.get(key);
+  return row ? row.value : null;
+};
+
+export const setAppSetting = (key, value) => {
+  const stmt = db.prepare(`
+    INSERT INTO app_settings (key, value) VALUES (?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+  `);
+  stmt.run(key, value);
+};
+
+export const deleteAppSetting = (key) => {
+  const stmt = db.prepare(`DELETE FROM app_settings WHERE key = ?`);
+  stmt.run(key);
+};
+
+export const updateUserThemeInDb = (userId, theme) => {
+  if (userId) {
+    const stmt = db.prepare(`UPDATE users SET theme = ? WHERE id = ?`);
+    stmt.run(theme, userId);
+  }
+  setAppSetting('active_theme', theme);
 };
 
 export const getUserById = (id) => {
-  const stmt = db.prepare('SELECT id, name, email, theme, created_at FROM users WHERE id = ?');
+  const stmt = db.prepare(`SELECT id, name, email, theme FROM users WHERE id = ?`);
   return stmt.get(id);
 };
 
-export const createUser = ({ name, email, password }) => {
+// ------------------------------------------------------------------
+// USER AUTHENTICATION LOGIC
+// ------------------------------------------------------------------
+export const createUser = (name, email, password) => {
+  const existing = db.prepare(`SELECT id FROM users WHERE email = ?`).get(email);
+  if (existing) {
+    throw new Error('User with this email already exists.');
+  }
+
   const id = `user-${Date.now()}`;
   const createdAt = new Date().toISOString();
   const stmt = db.prepare(`
@@ -90,72 +125,53 @@ export const createUser = ({ name, email, password }) => {
     VALUES (?, ?, ?, ?, 'dark', ?)
   `);
   stmt.run(id, name, email, password, createdAt);
-  return { id, name, email, theme: 'dark' };
+
+  return { id, name, email, theme: 'dark', createdAt };
 };
 
-export const updateUserThemeInDb = (userId, theme) => {
-  const stmt = db.prepare('UPDATE users SET theme = ? WHERE id = ?');
-  stmt.run(theme, userId);
-
-  // Also set in app_settings table
-  setAppSetting('active_theme', theme);
-  return theme;
+export const findUserByEmailAndPassword = (email, password) => {
+  const stmt = db.prepare(`SELECT id, name, email, password, theme FROM users WHERE email = ?`);
+  const user = stmt.get(email);
+  if (!user || user.password !== password) {
+    return null;
+  }
+  return { id: user.id, name: user.name, email: user.email, theme: user.theme || 'dark' };
 };
 
-export const getAppSetting = (key) => {
-  const stmt = db.prepare('SELECT value FROM app_settings WHERE key = ?');
-  const row = stmt.get(key);
-  return row ? row.value : null;
-};
-
-export const setAppSetting = (key, value) => {
-  const stmt = db.prepare(`
-    INSERT INTO app_settings (key, value)
-    VALUES (?, ?)
-    ON CONFLICT(key) DO UPDATE SET value = excluded.value
-  `);
-  stmt.run(key, value);
-};
-
-export const deleteAppSetting = (key) => {
-  const stmt = db.prepare('DELETE FROM app_settings WHERE key = ?');
-  stmt.run(key);
-};
-
+// ------------------------------------------------------------------
+// TASK OPERATIONS LOGIC
+// ------------------------------------------------------------------
 export const getUserTasks = (userId) => {
-  const tasksStmt = db.prepare(`
-    SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC
-  `);
-  const tasks = tasksStmt.all(userId);
+  const tasksStmt = db.prepare(`SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC`);
+  const rawTasks = tasksStmt.all(userId);
 
-  const subtasksStmt = db.prepare(`
-    SELECT * FROM subtasks WHERE task_id = ?
-  `);
+  const subtasksStmt = db.prepare(`SELECT * FROM subtasks WHERE task_id = ?`);
 
-  return tasks.map((t) => {
-    const rawSubtasks = subtasksStmt.all(t.id);
+  return rawTasks.map((t) => {
+    const subtasks = subtasksStmt.all(t.id).map((s) => ({
+      id: s.id,
+      title: s.title,
+      completed: Boolean(s.completed)
+    }));
+
     return {
       id: t.id,
       title: t.title,
-      notes: t.notes,
-      category: t.category,
-      priority: t.priority,
-      dueDate: t.due_date,
+      notes: t.notes || '',
+      category: t.category || 'General',
+      priority: t.priority || 'medium',
+      dueDate: t.due_date || null,
       completed: Boolean(t.completed),
       starred: Boolean(t.starred),
       createdAt: t.created_at,
-      subtasks: rawSubtasks.map((s) => ({
-        id: s.id,
-        title: s.title,
-        completed: Boolean(s.completed)
-      }))
+      subtasks
     };
   });
 };
 
 export const saveTask = (userId, task) => {
-  const checkStmt = db.prepare('SELECT id FROM tasks WHERE id = ?');
-  const existing = checkStmt.get(task.id);
+  const existing = db.prepare(`SELECT id FROM tasks WHERE id = ?`).get(task.id);
+  const now = new Date().toISOString();
 
   if (existing) {
     const updateStmt = db.prepare(`
@@ -166,7 +182,7 @@ export const saveTask = (userId, task) => {
     updateStmt.run(
       task.title,
       task.notes || '',
-      task.category || '',
+      task.category || 'General',
       task.priority || 'medium',
       task.dueDate || null,
       task.completed ? 1 : 0,
@@ -184,25 +200,24 @@ export const saveTask = (userId, task) => {
       userId,
       task.title,
       task.notes || '',
-      task.category || '',
+      task.category || 'General',
       task.priority || 'medium',
       task.dueDate || null,
       task.completed ? 1 : 0,
       task.starred ? 1 : 0,
-      task.createdAt || new Date().toISOString()
+      task.createdAt || now
     );
   }
 
-  const deleteSubtasksStmt = db.prepare('DELETE FROM subtasks WHERE task_id = ?');
-  deleteSubtasksStmt.run(task.id);
-
-  if (task.subtasks && task.subtasks.length > 0) {
-    const insertSubtaskStmt = db.prepare(`
+  // Handle Subtasks
+  db.prepare(`DELETE FROM subtasks WHERE task_id = ?`).run(task.id);
+  if (Array.isArray(task.subtasks) && task.subtasks.length > 0) {
+    const insertSubtask = db.prepare(`
       INSERT INTO subtasks (id, task_id, title, completed)
       VALUES (?, ?, ?, ?)
     `);
     for (const sub of task.subtasks) {
-      insertSubtaskStmt.run(sub.id, task.id, sub.title, sub.completed ? 1 : 0);
+      insertSubtask.run(sub.id, task.id, sub.title, sub.completed ? 1 : 0);
     }
   }
 
@@ -210,9 +225,6 @@ export const saveTask = (userId, task) => {
 };
 
 export const deleteTaskFromDb = (userId, taskId) => {
-  const deleteSubtasksStmt = db.prepare('DELETE FROM subtasks WHERE task_id = ?');
-  deleteSubtasksStmt.run(taskId);
-
-  const deleteStmt = db.prepare('DELETE FROM tasks WHERE id = ? AND user_id = ?');
-  deleteStmt.run(taskId, userId);
+  const stmt = db.prepare(`DELETE FROM tasks WHERE id = ? AND user_id = ?`);
+  stmt.run(taskId, userId);
 };

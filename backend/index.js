@@ -1,17 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import {
-  initDatabase,
-  getUserByEmail,
-  getUserById,
   createUser,
+  findUserByEmailAndPassword,
   getUserTasks,
   saveTask,
   deleteTaskFromDb,
   getAppSetting,
   setAppSetting,
   deleteAppSetting,
-  updateUserThemeInDb
+  updateUserThemeInDb,
+  getUserById
 } from './db.js';
 
 const app = express();
@@ -20,54 +19,53 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize SQLite Database
-initDatabase();
+// ------------------------------------------------------------------
+// Health Check Endpoint
+// ------------------------------------------------------------------
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'TaskFlow SQL Backend API is active.' });
+});
 
 // ------------------------------------------------------------------
-// Session & App Settings SQL Persistence Routes
+// Session & Theme Routes (Persistent SQL State)
 // ------------------------------------------------------------------
 app.get('/api/session', (req, res) => {
   try {
     const activeUserId = getAppSetting('active_user_id');
     const activeTheme = getAppSetting('active_theme') || 'dark';
 
-    if (!activeUserId) {
-      return res.json({ user: null, theme: activeTheme });
-    }
-
-    const user = getUserById(activeUserId);
-    if (!user) {
-      deleteAppSetting('active_user_id');
-      return res.json({ user: null, theme: activeTheme });
+    let user = null;
+    if (activeUserId) {
+      user = getUserById(activeUserId);
     }
 
     res.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        theme: user.theme || activeTheme
-      },
-      theme: user.theme || activeTheme
+      user: user ? { id: user.id, name: user.name, email: user.email, theme: user.theme || activeTheme } : null,
+      theme: user?.theme || activeTheme
     });
   } catch (error) {
     console.error('Get session error:', error);
-    res.status(500).json({ error: 'Failed to retrieve session from SQL database' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 app.post('/api/session', (req, res) => {
   try {
     const { userId } = req.body;
-    if (userId) {
-      setAppSetting('active_user_id', userId);
-    } else {
-      deleteAppSetting('active_user_id');
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
     }
-    res.json({ success: true });
+
+    setAppSetting('active_user_id', userId);
+    const user = getUserById(userId);
+    if (user && user.theme) {
+      setAppSetting('active_theme', user.theme);
+    }
+
+    res.json({ success: true, userId });
   } catch (error) {
     console.error('Save session error:', error);
-    res.status(500).json({ error: 'Failed to save session to SQL database' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -77,7 +75,7 @@ app.delete('/api/session', (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('Delete session error:', error);
-    res.status(500).json({ error: 'Failed to delete session from SQL database' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -85,18 +83,14 @@ app.put('/api/user/theme', (req, res) => {
   try {
     const { userId, theme } = req.body;
     if (!theme) {
-      return res.status(400).json({ error: 'Theme is required.' });
+      return res.status(400).json({ error: 'theme is required' });
     }
 
-    setAppSetting('active_theme', theme);
-    if (userId) {
-      updateUserThemeInDb(userId, theme);
-    }
-
+    updateUserThemeInDb(userId, theme);
     res.json({ success: true, theme });
   } catch (error) {
     console.error('Update theme error:', error);
-    res.status(500).json({ error: 'Failed to update theme in SQL database' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -106,33 +100,33 @@ app.put('/api/user/theme', (req, res) => {
 app.post('/api/auth/register', (req, res) => {
   try {
     const { name, email, password } = req.body;
+
     if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email, and password are required.' });
+      return res.status(400).json({ error: 'All fields (name, email, password) are required.' });
     }
 
-    const existing = getUserByEmail(email);
-    if (existing) {
-      return res.status(400).json({ error: 'An account with this email already exists.' });
-    }
+    const newUser = createUser(name, email, password);
+    setAppSetting('active_user_id', newUser.id);
+    setAppSetting('active_theme', 'dark');
 
-    const user = createUser({ name, email, password });
-    setAppSetting('active_user_id', user.id);
-    res.status(201).json({ user });
+    res.status(201).json({ user: newUser });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Register error:', error);
+    res.status(400).json({ error: error.message || 'Registration failed.' });
   }
 });
 
 app.post('/api/auth/login', (req, res) => {
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    const user = getUserByEmail(email);
-    if (!user || user.password !== password) {
+    const user = findUserByEmailAndPassword(email, password);
+
+    if (!user) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
@@ -215,6 +209,10 @@ app.post('/api/ai/process', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`TaskFlow Express SQL API running on http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`TaskFlow Express SQL API running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
