@@ -18,12 +18,10 @@ import { AlertDialog } from './components/AlertDialog';
 import { AiChatDrawer } from './components/AiChatDrawer';
 import { getAppTheme } from './theme/theme';
 import {
-  loadCurrentUserFromStorage,
-  saveCurrentUserToStorage,
-  loadThemeFromStorage,
-  saveThemeToStorage
-} from './utils/storage';
-import {
+  apiGetSession,
+  apiSaveSession,
+  apiDeleteSession,
+  apiUpdateTheme,
   apiGetTasks,
   apiSaveTask,
   apiDeleteTask
@@ -31,10 +29,11 @@ import {
 import { processAiPrompt } from './services/aiAssistant';
 
 export function App() {
-  const [user, setUser] = useState(() => loadCurrentUserFromStorage());
+  const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
-  const [themeMode, setThemeMode] = useState(() => loadThemeFromStorage());
+  const [initializing, setInitializing] = useState(true);
+  const [themeMode, setThemeMode] = useState('dark');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
@@ -69,13 +68,28 @@ export function App() {
 
   const muiTheme = useMemo(() => getAppTheme(themeMode), [themeMode]);
 
+  // Load Session & Theme from SQL Server on App Mount (No localStorage!)
   useEffect(() => {
-    saveThemeToStorage(themeMode);
-  }, [themeMode]);
+    async function initSession() {
+      try {
+        const session = await apiGetSession();
+        if (session.user) {
+          setUser(session.user);
+        }
+        if (session.theme) {
+          setThemeMode(session.theme);
+        }
+      } catch (err) {
+        console.error('Failed to initialize session from SQL backend:', err);
+      } finally {
+        setInitializing(false);
+      }
+    }
+    initSession();
+  }, []);
 
-  // Load User Tasks from SQL Server
+  // Load User Tasks from SQL Server whenever user changes
   useEffect(() => {
-    saveCurrentUserToStorage(user);
     if (user) {
       setLoadingTasks(true);
       apiGetTasks(user.id)
@@ -93,23 +107,38 @@ export function App() {
     }
   }, [user]);
 
-  const handleToggleTheme = () => {
-    setThemeMode((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  const handleToggleTheme = async () => {
+    const nextTheme = themeMode === 'dark' ? 'light' : 'dark';
+    setThemeMode(nextTheme);
+    try {
+      await apiUpdateTheme(user?.id, nextTheme);
+    } catch (err) {
+      console.error('Failed to save theme in SQL:', err);
+    }
   };
 
-  const handleAuthSuccess = (loggedInUser) => {
+  const handleAuthSuccess = async (loggedInUser) => {
     setUser(loggedInUser);
     setIsAuthModalOpen(false);
+    try {
+      await apiSaveSession(loggedInUser.id);
+    } catch (err) {
+      console.error('Failed to save session in SQL:', err);
+    }
   };
 
   const handleLogoutClick = () => {
     setIsLogoutConfirmOpen(true);
   };
 
-  const handleConfirmLogout = () => {
+  const handleConfirmLogout = async () => {
     setIsLogoutConfirmOpen(false);
     setUser(null);
-    saveCurrentUserToStorage(null);
+    try {
+      await apiDeleteSession();
+    } catch (err) {
+      console.error('Failed to delete session in SQL:', err);
+    }
     setIsAuthModalOpen(true);
   };
 
@@ -329,6 +358,17 @@ export function App() {
         return 0;
       });
   }, [tasks, activeTab, selectedCategory, searchQuery, sortBy]);
+
+  if (initializing) {
+    return (
+      <ThemeProvider theme={muiTheme}>
+        <CssBaseline />
+        <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <CircularProgress color="primary" />
+        </Box>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider theme={muiTheme}>

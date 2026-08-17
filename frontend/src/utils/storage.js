@@ -1,44 +1,53 @@
-const USERS_STORAGE_KEY = 'taskflow_users_v1';
-const CURRENT_USER_KEY = 'taskflow_current_user_v1';
-const THEME_STORAGE_KEY = 'taskflow_theme_v1';
+import {
+  apiGetSession,
+  apiSaveSession,
+  apiDeleteSession,
+  apiUpdateTheme
+} from '../services/api';
 
 export const initialSampleTasks = [];
 
-// Current Session
-export const loadCurrentUserFromStorage = () => {
+/**
+ * SQL-backed session management (No localStorage used!)
+ */
+export const loadCurrentUserFromStorage = async () => {
   try {
-    const data = localStorage.getItem(CURRENT_USER_KEY);
-    return data ? JSON.parse(data) : null;
-  } catch {
+    const session = await apiGetSession();
+    return session.user || null;
+  } catch (error) {
+    console.error('Failed to load session from SQL database:', error);
     return null;
   }
 };
 
-export const saveCurrentUserToStorage = (user) => {
+export const saveCurrentUserToStorage = async (user) => {
   try {
-    if (user) {
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+    if (user && user.id) {
+      await apiSaveSession(user.id);
     } else {
-      localStorage.removeItem(CURRENT_USER_KEY);
+      await apiDeleteSession();
     }
   } catch (error) {
-    console.error('Failed to save current user:', error);
+    console.error('Failed to save session to SQL database:', error);
   }
 };
 
-// Theme
-export const loadThemeFromStorage = () => {
+/**
+ * SQL-backed theme management (No localStorage used!)
+ */
+export const loadThemeFromStorage = async () => {
   try {
-    return localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
-  } catch {
+    const session = await apiGetSession();
+    return session.theme || 'dark';
+  } catch (error) {
     return 'dark';
   }
 };
 
-export const saveThemeToStorage = (theme) => {
+export const saveThemeToStorage = async (theme, userId = null) => {
   try {
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
+    await apiUpdateTheme(userId, theme);
   } catch (error) {
-    console.error('Failed to save theme to localStorage:', error);
+    console.error('Failed to save theme to SQL database:', error);
   }
 };

@@ -3,10 +3,15 @@ import cors from 'cors';
 import {
   initDatabase,
   getUserByEmail,
+  getUserById,
   createUser,
   getUserTasks,
   saveTask,
-  deleteTaskFromDb
+  deleteTaskFromDb,
+  getAppSetting,
+  setAppSetting,
+  deleteAppSetting,
+  updateUserThemeInDb
 } from './db.js';
 
 const app = express();
@@ -18,7 +23,86 @@ app.use(express.json());
 // Initialize SQLite Database
 initDatabase();
 
+// ------------------------------------------------------------------
+// Session & App Settings SQL Persistence Routes
+// ------------------------------------------------------------------
+app.get('/api/session', (req, res) => {
+  try {
+    const activeUserId = getAppSetting('active_user_id');
+    const activeTheme = getAppSetting('active_theme') || 'dark';
+
+    if (!activeUserId) {
+      return res.json({ user: null, theme: activeTheme });
+    }
+
+    const user = getUserById(activeUserId);
+    if (!user) {
+      deleteAppSetting('active_user_id');
+      return res.json({ user: null, theme: activeTheme });
+    }
+
+    res.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        theme: user.theme || activeTheme
+      },
+      theme: user.theme || activeTheme
+    });
+  } catch (error) {
+    console.error('Get session error:', error);
+    res.status(500).json({ error: 'Failed to retrieve session from SQL database' });
+  }
+});
+
+app.post('/api/session', (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (userId) {
+      setAppSetting('active_user_id', userId);
+    } else {
+      deleteAppSetting('active_user_id');
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Save session error:', error);
+    res.status(500).json({ error: 'Failed to save session to SQL database' });
+  }
+});
+
+app.delete('/api/session', (req, res) => {
+  try {
+    deleteAppSetting('active_user_id');
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete session error:', error);
+    res.status(500).json({ error: 'Failed to delete session from SQL database' });
+  }
+});
+
+app.put('/api/user/theme', (req, res) => {
+  try {
+    const { userId, theme } = req.body;
+    if (!theme) {
+      return res.status(400).json({ error: 'Theme is required.' });
+    }
+
+    setAppSetting('active_theme', theme);
+    if (userId) {
+      updateUserThemeInDb(userId, theme);
+    }
+
+    res.json({ success: true, theme });
+  } catch (error) {
+    console.error('Update theme error:', error);
+    res.status(500).json({ error: 'Failed to update theme in SQL database' });
+  }
+});
+
+// ------------------------------------------------------------------
 // Auth Routes
+// ------------------------------------------------------------------
 app.post('/api/auth/register', (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -32,6 +116,7 @@ app.post('/api/auth/register', (req, res) => {
     }
 
     const user = createUser({ name, email, password });
+    setAppSetting('active_user_id', user.id);
     res.status(201).json({ user });
   } catch (error) {
     console.error('Registration error:', error);
@@ -51,11 +136,17 @@ app.post('/api/auth/login', (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
+    setAppSetting('active_user_id', user.id);
+    if (user.theme) {
+      setAppSetting('active_theme', user.theme);
+    }
+
     res.json({
       user: {
         id: user.id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        theme: user.theme || 'dark'
       }
     });
   } catch (error) {
@@ -64,7 +155,9 @@ app.post('/api/auth/login', (req, res) => {
   }
 });
 
+// ------------------------------------------------------------------
 // Task Routes
+// ------------------------------------------------------------------
 app.get('/api/tasks', (req, res) => {
   try {
     const userId = req.query.userId;

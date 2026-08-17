@@ -10,14 +10,30 @@ export const db = new DatabaseSync(dbPath);
 
 // Initialize SQL Schema
 export const initDatabase = () => {
-  // Users Table
+  // Users Table with theme column
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
+      theme TEXT DEFAULT 'dark',
       created_at TEXT NOT NULL
+    );
+  `);
+
+  // Migration: Add theme column to users table if missing
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN theme TEXT DEFAULT 'dark';`);
+  } catch {
+    // Column already exists
+  }
+
+  // App Settings Table (Stores active user session & global preferences in SQL)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
     );
   `);
 
@@ -61,15 +77,49 @@ export const getUserByEmail = (email) => {
   return stmt.get(email);
 };
 
+export const getUserById = (id) => {
+  const stmt = db.prepare('SELECT id, name, email, theme, created_at FROM users WHERE id = ?');
+  return stmt.get(id);
+};
+
 export const createUser = ({ name, email, password }) => {
   const id = `user-${Date.now()}`;
   const createdAt = new Date().toISOString();
   const stmt = db.prepare(`
-    INSERT INTO users (id, name, email, password, created_at)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO users (id, name, email, password, theme, created_at)
+    VALUES (?, ?, ?, ?, 'dark', ?)
   `);
   stmt.run(id, name, email, password, createdAt);
-  return { id, name, email };
+  return { id, name, email, theme: 'dark' };
+};
+
+export const updateUserThemeInDb = (userId, theme) => {
+  const stmt = db.prepare('UPDATE users SET theme = ? WHERE id = ?');
+  stmt.run(theme, userId);
+
+  // Also set in app_settings table
+  setAppSetting('active_theme', theme);
+  return theme;
+};
+
+export const getAppSetting = (key) => {
+  const stmt = db.prepare('SELECT value FROM app_settings WHERE key = ?');
+  const row = stmt.get(key);
+  return row ? row.value : null;
+};
+
+export const setAppSetting = (key, value) => {
+  const stmt = db.prepare(`
+    INSERT INTO app_settings (key, value)
+    VALUES (?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+  `);
+  stmt.run(key, value);
+};
+
+export const deleteAppSetting = (key) => {
+  const stmt = db.prepare('DELETE FROM app_settings WHERE key = ?');
+  stmt.run(key);
 };
 
 export const getUserTasks = (userId) => {
@@ -108,7 +158,6 @@ export const saveTask = (userId, task) => {
   const existing = checkStmt.get(task.id);
 
   if (existing) {
-    // Update Task
     const updateStmt = db.prepare(`
       UPDATE tasks
       SET title = ?, notes = ?, category = ?, priority = ?, due_date = ?, completed = ?, starred = ?
@@ -126,7 +175,6 @@ export const saveTask = (userId, task) => {
       userId
     );
   } else {
-    // Insert Task
     const insertStmt = db.prepare(`
       INSERT INTO tasks (id, user_id, title, notes, category, priority, due_date, completed, starred, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -145,7 +193,6 @@ export const saveTask = (userId, task) => {
     );
   }
 
-  // Sync Subtasks
   const deleteSubtasksStmt = db.prepare('DELETE FROM subtasks WHERE task_id = ?');
   deleteSubtasksStmt.run(task.id);
 
