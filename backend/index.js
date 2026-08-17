@@ -209,10 +209,6 @@ app.post('/api/ai/process', (req, res) => {
   }
 });
 
-if (!process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`TaskFlow Express SQL API running on http://localhost:${PORT}`);
-  });
-}
-
-export default app;
+app.listen(PORT, () => {
+  console.log(`TaskFlow Express SQL API running on http://localhost:${PORT}`);
+});

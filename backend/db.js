@@ -1,15 +1,10 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// On Vercel serverless functions, root filesystem is read-only; use /tmp directory
-const isVercel = Boolean(process.env.VERCEL || process.env.NOW_BUILDER);
-const dbDir = isVercel ? '/tmp' : __dirname;
-const dbPath = path.join(dbDir, 'taskflow.sqlite');
+const dbPath = path.join(__dirname, 'taskflow.sqlite');
 
 export const db = new DatabaseSync(dbPath);
 
