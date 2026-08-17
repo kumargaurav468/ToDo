@@ -13,7 +13,12 @@ import {
   Tooltip,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  InputAdornment
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
@@ -24,6 +29,9 @@ import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import PsychofarmologyIcon from '@mui/icons-material/Psychology';
 import BuildIcon from '@mui/icons-material/Build';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
+import SubdirectoryArrowLeftIcon from '@mui/icons-material/SubdirectoryArrowLeft';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 
 const SUGGESTED_PROMPTS = [
   '👋 Good morning, what should I focus on next?',
@@ -33,9 +41,81 @@ const SUGGESTED_PROMPTS = [
   '📅 Postpone work tasks to tomorrow'
 ];
 
+const AUTOMATED_SUGGESTIONS = [
+  'Add task report tomorrow',
+  'Delete completed tasks',
+  'How are you?',
+  'What should I focus on next?',
+  'Reschedule work tasks to next week',
+  'Clear chat'
+];
+
 const stripAsterisks = (str) => {
   if (!str) return '';
   return str.replace(/\*/g, '');
+};
+
+const generateDynamicSuggestions = (query, currentTasks = []) => {
+  if (!query || !query.trim()) return [];
+
+  const lower = query.trim().toLowerCase();
+  const suggestions = [];
+
+  // 1. Task Creation Intents
+  if (
+    lower.startsWith('a') ||
+    lower.startsWith('c') ||
+    lower.startsWith('r') ||
+    lower.startsWith('s') ||
+    lower.startsWith('n') ||
+    lower.includes('add') ||
+    lower.includes('create')
+  ) {
+    suggestions.push('Add task prepare quarterly report tomorrow');
+    suggestions.push('Create high priority task review codebase');
+    suggestions.push('Remind me to check emails at 5pm');
+    suggestions.push('Schedule work meeting for next week');
+  }
+
+  // 2. Task Deletion Intents
+  if (lower.includes('del') || lower.includes('rem') || lower.includes('tra') || lower.includes('era')) {
+    suggestions.push('Delete all completed tasks');
+    suggestions.push('Delete work tasks');
+    suggestions.push('Delete all tasks');
+
+    currentTasks.slice(0, 3).forEach((t) => {
+      suggestions.push(`Delete task ${t.title}`);
+    });
+  }
+
+  // 3. Task Completion Intents
+  if (lower.includes('fin') || lower.includes('com') || lower.includes('don') || lower.includes('che') || lower.includes('mar')) {
+    suggestions.push('Complete all tasks');
+    currentTasks.filter((t) => !t.completed).slice(0, 3).forEach((t) => {
+      suggestions.push(`I finished ${t.title}`);
+    });
+  }
+
+  // 4. Conversational / Questions
+  if (lower.startsWith('h') || lower.startsWith('w') || lower.startsWith('t') || lower.includes('how') || lower.includes('who')) {
+    suggestions.push('How are you?');
+    suggestions.push('Who are you?');
+    suggestions.push('What should I focus on next?');
+    suggestions.push('What can you do?');
+  }
+
+  // 5. Chat Control
+  if (lower.startsWith('c') || lower.startsWith('r') || lower.includes('cle')) {
+    suggestions.push('Clear chat');
+  }
+
+  // Filter based on input match & deduplicate
+  const filtered = Array.from(new Set(suggestions)).filter((s) => {
+    const sLower = s.toLowerCase();
+    return sLower.includes(lower) || lower.split(' ').every((w) => sLower.includes(w));
+  });
+
+  return filtered.slice(0, 4);
 };
 
 const INITIAL_MESSAGE = {
@@ -57,7 +137,21 @@ export const AiChatDrawer = ({
   const [messages, setMessages] = useState([INITIAL_MESSAGE]);
   const [loading, setLoading] = useState(false);
   const [currentThoughtStep, setCurrentThoughtStep] = useState('');
+  const [activeSuggestions, setActiveSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
+
   const messagesEndRef = useRef(null);
+
+  // Automated rotating suggestions timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSuggestionIndex((prev) => (prev + 1) % AUTOMATED_SUGGESTIONS.length);
+    }, 2800);
+    return () => clearInterval(timer);
+  }, []);
+
+  const currentSuggestion = AUTOMATED_SUGGESTIONS[suggestionIndex];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -69,6 +163,31 @@ export const AiChatDrawer = ({
     }
   }, [messages, loading, currentThoughtStep, isOpen]);
 
+  // Generate live auto-suggestions whenever input changes
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setInput(val);
+
+    if (val.trim().length > 0) {
+      const suggestions = generateDynamicSuggestions(val, tasks);
+      setActiveSuggestions(suggestions);
+      setShowSuggestions(suggestions.length > 0);
+    } else {
+      setActiveSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectSuggestion = (suggestionText) => {
+    setInput(suggestionText);
+    setShowSuggestions(false);
+  };
+
+  const handleApplyAutomatedSuggestion = () => {
+    setInput(currentSuggestion);
+    setShowSuggestions(false);
+  };
+
   const handleClearChat = () => {
     setMessages([
       {
@@ -77,11 +196,15 @@ export const AiChatDrawer = ({
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
+    setShowSuggestions(false);
   };
 
   const handleSend = async (textToSend) => {
     const promptText = textToSend || input;
     if (!promptText.trim() || loading) return;
+
+    setShowSuggestions(false);
+    setActiveSuggestions([]);
 
     const userMsg = {
       id: `user-${Date.now()}`,
@@ -377,6 +500,96 @@ export const AiChatDrawer = ({
         <div ref={messagesEndRef} />
       </Box>
 
+      {/* Floating Real-Time Auto-Suggestions Bar */}
+      {showSuggestions && activeSuggestions.length > 0 && (
+        <Paper
+          elevation={4}
+          sx={{
+            mx: 2,
+            mb: 1,
+            borderRadius: 2,
+            overflow: 'hidden',
+            border: 1,
+            borderColor: 'primary.light',
+            bgcolor: 'background.paper',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%)'
+          }}
+        >
+          <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LightbulbIcon color="primary" sx={{ fontSize: 16 }} />
+            <Typography variant="caption" fontWeight={700} color="primary">
+              Auto-Suggestions (click to insert):
+            </Typography>
+          </Box>
+          <List dense disablePadding>
+            {activeSuggestions.map((sug, sIdx) => (
+              <ListItemButton
+                key={sIdx}
+                onClick={() => handleSelectSuggestion(sug)}
+                sx={{
+                  py: 1,
+                  px: 2,
+                  '&:hover': {
+                    bgcolor: 'action.hover'
+                  }
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 28 }}>
+                  <SubdirectoryArrowLeftIcon fontSize="small" color="action" />
+                </ListItemIcon>
+                <ListItemText
+                  primary={sug}
+                  primaryTypographyProps={{
+                    fontSize: '0.82rem',
+                    fontWeight: 500
+                  }}
+                />
+              </ListItemButton>
+            ))}
+          </List>
+        </Paper>
+      )}
+
+      {/* Automated Suggestion Quick-Fill Banner above input */}
+      {!input && (
+        <Box
+          onClick={handleApplyAutomatedSuggestion}
+          sx={{
+            px: 2,
+            py: 0.75,
+            bgcolor: 'action.hover',
+            borderTop: 1,
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              bgcolor: 'action.selected'
+            }
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <AutoFixHighIcon color="secondary" sx={{ fontSize: 15 }} />
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+              <strong style={{ color: '#a855f7' }}>{currentSuggestion}</strong>
+            </Typography>
+          </Box>
+          <Chip
+            label="Insert Suggestion"
+            size="small"
+            color="secondary"
+            variant="outlined"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleApplyAutomatedSuggestion();
+            }}
+            sx={{ height: 20, fontSize: '0.65rem', cursor: 'pointer', fontWeight: 600 }}
+          />
+        </Box>
+      )}
+
       <Divider />
 
       {/* Input Box */}
@@ -395,12 +608,32 @@ export const AiChatDrawer = ({
         }}
       >
         <TextField
-          placeholder="How can I help you?"
+          placeholder={currentSuggestion}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleInputChange}
+          onFocus={() => {
+            if (!input) {
+              handleApplyAutomatedSuggestion();
+            }
+          }}
           fullWidth
           size="small"
           disabled={loading}
+          InputProps={{
+            endAdornment: !input ? (
+              <InputAdornment position="end">
+                <Tooltip title={`Insert: "${currentSuggestion}"`}>
+                  <Chip
+                    icon={<AutoFixHighIcon style={{ fontSize: 12, color: '#6366f1' }} />}
+                    label="Insert"
+                    size="small"
+                    onClick={handleApplyAutomatedSuggestion}
+                    sx={{ height: 22, fontSize: '0.65rem', cursor: 'pointer' }}
+                  />
+                </Tooltip>
+              </InputAdornment>
+            ) : null
+          }}
           sx={{
             '& .MuiOutlinedInput-root': {
               borderRadius: 3
