@@ -11,9 +11,6 @@ import {
   CircularProgress,
   Divider,
   Tooltip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   InputAdornment
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
@@ -22,9 +19,6 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
-import PsychofarmologyIcon from '@mui/icons-material/Psychology';
-import BuildIcon from '@mui/icons-material/Build';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 
 const AUTOMATED_SUGGESTIONS = [
@@ -45,9 +39,7 @@ const INITIAL_MESSAGE = {
   id: 'msg-init',
   sender: 'ai',
   text: "Hello! I am your Real-Time TaskFlow AI Agent 🤖. How can I assist your productivity workflow today?\n\nYou can issue autonomous commands to create tasks ('Add task report tomorrow'), delete tasks ('Delete completed tasks'), clear chat history ('Clear chat'), or postpone dates!",
-  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-  executedTool: 'agent_init_node()',
-  thoughts: ['🟢 Agent system online', '⚡ Real-time database listening active']
+  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 };
 
 export const AiChatDrawer = ({
@@ -137,10 +129,10 @@ export const AiChatDrawer = ({
 
     // Simulate real-time step-by-step thinking
     setCurrentThoughtStep('🧠 Agent analyzing prompt intent & context...');
-    await new Promise((r) => setTimeout(r, 250));
+    await new Promise((r) => setTimeout(r, 200));
 
     setCurrentThoughtStep('⚡ Resolving SQL database tool bindings...');
-    await new Promise((r) => setTimeout(r, 250));
+    await new Promise((r) => setTimeout(r, 200));
 
     try {
       const result = await onExecuteAiAction(promptText);
@@ -150,15 +142,13 @@ export const AiChatDrawer = ({
         return;
       }
 
-      setCurrentThoughtStep('✨ Synthesizing final agent response...');
-      await new Promise((r) => setTimeout(r, 200));
+      setCurrentThoughtStep('✨ Synthesizing response...');
+      await new Promise((r) => setTimeout(r, 150));
 
       const aiMsg = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
         text: stripAsterisks(result.reply),
-        executedTool: result.executedTool || 'agent_node()',
-        thoughts: result.thoughts || [],
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, aiMsg]);
@@ -258,7 +248,7 @@ export const AiChatDrawer = ({
         </Box>
       </Box>
 
-      {/* Message History & Agent Execution Traces */}
+      {/* Message History */}
       <Box
         sx={{
           flexGrow: 1,
@@ -317,53 +307,6 @@ export const AiChatDrawer = ({
                 >
                   {stripAsterisks(msg.text)}
                 </Typography>
-
-                {/* Render Executed Tool Badge if available */}
-                {msg.executedTool && (
-                  <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Chip
-                      icon={<BuildIcon style={{ fontSize: 12, color: '#a855f7' }} />}
-                      label={`Tool Executed: ${msg.executedTool}`}
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        fontSize: '0.68rem',
-                        height: 22,
-                        borderColor: 'rgba(168, 85, 247, 0.4)',
-                        color: msg.sender === 'user' ? 'white' : 'text.secondary'
-                      }}
-                    />
-                  </Box>
-                )}
-
-                {/* Render Agent Thought Process Accordion */}
-                {msg.thoughts && msg.thoughts.length > 0 && (
-                  <Accordion
-                    elevation={0}
-                    sx={{
-                      mt: 1,
-                      bgcolor: 'transparent',
-                      '&:before': { display: 'none' },
-                      borderTop: '1px dashed rgba(0,0,0,0.1)'
-                    }}
-                  >
-                    <AccordionSummary
-                      expandIcon={<ExpandMoreIcon sx={{ fontSize: 14 }} />}
-                      sx={{ p: 0, minHeight: 24, '& .MuiAccordionSummary-content': { my: 0.5 } }}
-                    >
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem', fontWeight: 600 }}>
-                        <PsychofarmologyIcon sx={{ fontSize: 13, color: '#6366f1' }} /> View Agent Execution Trace ({msg.thoughts.length} steps)
-                      </Typography>
-                    </AccordionSummary>
-                    <AccordionDetails sx={{ p: 1, bgcolor: 'action.hover', borderRadius: 1.5 }}>
-                      {msg.thoughts.map((step, sIdx) => (
-                        <Typography key={sIdx} variant="caption" sx={{ display: 'block', fontSize: '0.7rem', color: 'text.secondary', fontFamily: 'monospace' }}>
-                          {step}
-                        </Typography>
-                      ))}
-                    </AccordionDetails>
-                  </Accordion>
-                )}
               </Paper>
               <Typography
                 variant="caption"
