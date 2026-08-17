@@ -229,7 +229,7 @@ export function App() {
           await handleSaveTask({ ...target, completed: true });
         }
       }
-    } else if (aiResult.actionType === 'DELETE_COMPLETED' && aiResult.taskIds) {
+    } else if ((aiResult.actionType === 'DELETE_COMPLETED' || aiResult.actionType === 'DELETE_TASKS') && aiResult.taskIds) {
       for (const id of aiResult.taskIds) {
         await apiDeleteTask(user.id, id);
       }

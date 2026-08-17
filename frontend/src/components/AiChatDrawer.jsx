@@ -31,7 +31,7 @@ const SUGGESTED_PROMPTS = [
 const INITIAL_MESSAGE = {
   id: 'msg-init',
   sender: 'ai',
-  text: "Hello! I'm your TaskFlow AI Copilot 🤖. You can ask me to create tasks, delete tasks (e.g. 'Delete task report'), mark items completed, or reschedule dates!",
+  text: "Hello! I'm your TaskFlow AI Copilot 🤖. How can I help you today?\n\nYou can ask me to create tasks, delete tasks (e.g. 'Delete task report'), mark items completed, or reschedule dates!",
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 };
 
@@ -294,7 +294,7 @@ export const AiChatDrawer = ({
         }}
       >
         <TextField
-          placeholder="Ask AI: 'Delete task report' or 'Delete work tasks'..."
+          placeholder="How can I help you?"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           fullWidth
