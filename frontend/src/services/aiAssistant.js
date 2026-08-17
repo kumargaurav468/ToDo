@@ -167,24 +167,76 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 2. CASUAL GREETINGS & CHIT-CHAT
+  // 2. REAL-TIME CONVERSATIONAL & CHIT-CHAT ("HOW ARE YOU", "WHO ARE YOU", ETC.)
   // -------------------------------------------------------------
+  if (
+    lower.includes('how are you') ||
+    lower.includes('how are u') ||
+    lower.includes("how's it going") ||
+    lower.includes('how do you do') ||
+    lower.includes('how you doing')
+  ) {
+    thoughts.push('💬 Formulating real-time agent status telemetry response...');
+    const activeCount = existingTasks.filter((t) => !t.completed).length;
+    const completedCount = existingTasks.filter((t) => t.completed).length;
+
+    return {
+      reply: `I'm doing fantastic! 🤖⚡ My real-time neural agent engine is online and fully operational.\n\nRight now in your workspace:\n• **${activeCount}** active pending task${activeCount === 1 ? '' : 's'}\n• **${completedCount}** completed task${completedCount === 1 ? '' : 's'}\n\nHow can I help you smash your goals today?`,
+      actionType: 'NONE',
+      executedTool: 'conversational_status_node()',
+      thoughts
+    };
+  }
+
+  if (
+    lower.includes('who are you') ||
+    lower.includes('what are you') ||
+    lower.includes("what's your name") ||
+    lower.includes('tell me about yourself')
+  ) {
+    thoughts.push('💬 Synthesizing agent identity profile...');
+    return {
+      reply: "I am **TaskFlow AI Agent** 🤖 — your real-time autonomous productivity assistant! I manage tasks, schedule due dates, calculate priority focus, and execute batch database operations through natural language commands.",
+      actionType: 'NONE',
+      executedTool: 'agent_identity_node()',
+      thoughts
+    };
+  }
+
   if (
     lower === 'hi' ||
     lower === 'hello' ||
     lower === 'hey' ||
     lower.startsWith('good morning') ||
     lower.startsWith('good afternoon') ||
-    lower.startsWith('good evening') ||
-    lower.includes('how are you') ||
-    lower.includes('who are you')
+    lower.startsWith('good evening')
   ) {
     const greetingTime = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
     thoughts.push('💬 Formulating real-time conversational response...');
     return {
       reply: `${greetingTime}! 👋 I am your Real-Time TaskFlow AI Agent 🤖.\n\nI operate asynchronously with tool-calling capabilities! You can command me to:\n• *"Add task design dashboard tomorrow"* -> Create task\n• *"Delete all work tasks"* -> Batch SQL deletion\n• *"Reschedule tasks to next week"* -> Bulk date adjustment\n• *"Clear chat"* -> Wipes transcript`,
       actionType: 'NONE',
-      executedTool: 'conversational_agent_node()',
+      executedTool: 'conversational_greeting_node()',
+      thoughts
+    };
+  }
+
+  if (lower.includes('joke') || lower.includes('funny') || lower.includes('laugh')) {
+    thoughts.push('😄 Fetching agent joke module...');
+    return {
+      reply: "Why do programmers prefer dark mode? 🕶️\n\nBecause light attracts bugs! 🐛⚡",
+      actionType: 'NONE',
+      executedTool: 'agent_humor_node()',
+      thoughts
+    };
+  }
+
+  if (lower.includes('what can you do') || lower.includes('capabilities') || lower.includes('help me') || lower === 'help') {
+    thoughts.push('📋 Generating real-time agent capability menu...');
+    return {
+      reply: `🚀 **Real-Time Agent Capabilities**:\n\n1. **Task Automation**: *"Add task code review tomorrow with high priority"*\n2. **Batch Deletion**: *"Delete completed tasks"* or *"Delete work tasks"*\n3. **Productivity Focus**: *"What should I focus on next?"*\n4. **Smart Rescheduling**: *"Postpone tasks to next week"*\n5. **Chat Control**: *"Clear chat"*`,
+      actionType: 'NONE',
+      executedTool: 'capability_menu_node()',
       thoughts
     };
   }
@@ -609,7 +661,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   // -------------------------------------------------------------
   thoughts.push('❓ No executable tool matched input string.');
   return {
-    reply: `I didn't recognize a specific tool command for "${promptText}". 🤔\n\n• To add a task, use **"create"** or **"add"** (e.g. *"Add task review PR tomorrow"*).\n• To delete tasks, say **"delete task [name]"** or **"delete all tasks"**.\n• To clear chat history, say **"clear chat"**.`,
+    reply: `I didn't recognize a specific command for "${promptText}". 🤔\n\n• To add a task, use **"create"** or **"add"** (e.g. *"Add task review PR tomorrow"*).\n• To delete tasks, say **"delete task [name]"** or **"delete all tasks"**.\n• To clear chat history, say **"clear chat"**.`,
     actionType: 'NONE',
     executedTool: 'unmatched_intent_node()',
     thoughts
