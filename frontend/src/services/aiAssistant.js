@@ -181,7 +181,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     const completedCount = existingTasks.filter((t) => t.completed).length;
 
     return {
-      reply: `I'm doing fantastic! 🤖⚡ My real-time neural agent engine is online and fully operational.\n\nRight now in your workspace:\n• **${activeCount}** active pending task${activeCount === 1 ? '' : 's'}\n• **${completedCount}** completed task${completedCount === 1 ? '' : 's'}\n\nHow can I help you smash your goals today?`,
+      reply: `I am doing fantastic! 🤖⚡ My real-time neural agent engine is online and fully operational.\n\nRight now in your workspace:\n• ${activeCount} active pending task${activeCount === 1 ? '' : 's'}\n• ${completedCount} completed task${completedCount === 1 ? '' : 's'}\n\nHow can I help you smash your goals today?`,
       actionType: 'NONE',
       executedTool: 'conversational_status_node()',
       thoughts
@@ -196,7 +196,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   ) {
     thoughts.push('💬 Synthesizing agent identity profile...');
     return {
-      reply: "I am **TaskFlow AI Agent** 🤖 — your real-time autonomous productivity assistant! I manage tasks, schedule due dates, calculate priority focus, and execute batch database operations through natural language commands.",
+      reply: "I am TaskFlow AI Agent 🤖 — your real-time autonomous productivity assistant! I manage tasks, schedule due dates, calculate priority focus, and execute batch database operations through natural language commands.",
       actionType: 'NONE',
       executedTool: 'agent_identity_node()',
       thoughts
@@ -214,7 +214,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     const greetingTime = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
     thoughts.push('💬 Formulating real-time conversational response...');
     return {
-      reply: `${greetingTime}! 👋 I am your Real-Time TaskFlow AI Agent 🤖.\n\nI operate asynchronously with tool-calling capabilities! You can command me to:\n• *"Add task design dashboard tomorrow"* -> Create task\n• *"Delete all work tasks"* -> Batch SQL deletion\n• *"Reschedule tasks to next week"* -> Bulk date adjustment\n• *"Clear chat"* -> Wipes transcript`,
+      reply: `${greetingTime}! 👋 I am your Real-Time TaskFlow AI Agent 🤖.\n\nI operate asynchronously with tool-calling capabilities! You can command me to:\n• "Add task design dashboard tomorrow" -> Create task\n• "Delete all work tasks" -> Batch SQL deletion\n• "Reschedule tasks to next week" -> Bulk date adjustment\n• "Clear chat" -> Wipes transcript`,
       actionType: 'NONE',
       executedTool: 'conversational_greeting_node()',
       thoughts
@@ -234,7 +234,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   if (lower.includes('what can you do') || lower.includes('capabilities') || lower.includes('help me') || lower === 'help') {
     thoughts.push('📋 Generating real-time agent capability menu...');
     return {
-      reply: `🚀 **Real-Time Agent Capabilities**:\n\n1. **Task Automation**: *"Add task code review tomorrow with high priority"*\n2. **Batch Deletion**: *"Delete completed tasks"* or *"Delete work tasks"*\n3. **Productivity Focus**: *"What should I focus on next?"*\n4. **Smart Rescheduling**: *"Postpone tasks to next week"*\n5. **Chat Control**: *"Clear chat"*`,
+      reply: `🚀 Real-Time Agent Capabilities:\n\n1. Task Automation: "Add task code review tomorrow with high priority"\n2. Batch Deletion: "Delete completed tasks" or "Delete work tasks"\n3. Productivity Focus: "What should I focus on next?"\n4. Smart Rescheduling: "Postpone tasks to next week"\n5. Chat Control: "Clear chat"`,
       actionType: 'NONE',
       executedTool: 'capability_menu_node()',
       thoughts
@@ -333,7 +333,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
         thoughts.push(`⚡ Executing delete_tasks_tool(category: "${matchedCategory}", count: ${catTasks.length})`);
         thoughts.push('💾 Mutating SQLite Database records...');
         return {
-          reply: `Deleted ${catTasks.length} task${catTasks.length > 1 ? 's' : ''} in **${matchedCategory}** category! 🗑️`,
+          reply: `Deleted ${catTasks.length} task${catTasks.length > 1 ? 's' : ''} in ${matchedCategory} category! 🗑️`,
           actionType: 'DELETE_TASKS',
           taskIds: catTasks.map((t) => t.id),
           executedTool: `delete_tasks_tool(category: "${matchedCategory}")`,
@@ -360,7 +360,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       thoughts.push(`⚡ Executing delete_tasks_tool(id: "${targetTask.id}", title: "${targetTask.title}")`);
       thoughts.push('💾 Mutating SQLite Database records...');
       return {
-        reply: `Deleted task **"${targetTask.title}"** from your list! 🗑️`,
+        reply: `Deleted task "${targetTask.title}" from your list! 🗑️`,
         actionType: 'DELETE_TASKS',
         taskIds: [targetTask.id],
         executedTool: `delete_tasks_tool(title: "${targetTask.title}")`,
@@ -404,7 +404,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
 
     const topTask = pendingHigh.length > 0 ? pendingHigh[0] : pendingAny[0];
     return {
-      reply: `🎯 **Agent Recommendation**:\n\nFocus on **"${topTask.title}"** ${topTask.category ? `[${topTask.category}]` : ''} ${topTask.priority === 'high' ? '🔥 High Priority' : ''}.\n\nTip: Start a 25-minute Pomodoro focus timer from the top bar! ⏱️`,
+      reply: `🎯 Agent Recommendation:\n\nFocus on "${topTask.title}" ${topTask.category ? `[${topTask.category}]` : ''} ${topTask.priority === 'high' ? '🔥 High Priority' : ''}.\n\nTip: Start a 25-minute Pomodoro focus timer from the top bar! ⏱️`,
       actionType: 'NONE',
       executedTool: `focus_recommendation_tool(recommended_id: "${topTask.id}")`,
       thoughts
@@ -454,7 +454,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     if (targetTask) {
       if (targetTask.completed) {
         return {
-          reply: `Task **"${targetTask.title}"** is already completed! ✅`,
+          reply: `Task "${targetTask.title}" is already completed! ✅`,
           actionType: 'NONE',
           executedTool: `complete_tasks_tool(status: ALREADY_COMPLETE)`,
           thoughts
@@ -463,7 +463,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       thoughts.push(`⚡ Executing complete_tasks_tool(id: "${targetTask.id}")`);
       thoughts.push('💾 Mutating SQLite Database records...');
       return {
-        reply: `Marked task **"${targetTask.title}"** as completed! ✅`,
+        reply: `Marked task "${targetTask.title}" as completed! ✅`,
         actionType: 'COMPLETE_ALL',
         taskIds: [targetTask.id],
         executedTool: `complete_tasks_tool(title: "${targetTask.title}")`,
@@ -477,7 +477,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       thoughts.push(`⚡ Executing complete_tasks_tool(category: "${cat}", count: ${categoryTasks.length})`);
       thoughts.push('💾 Mutating SQLite Database records...');
       return {
-        reply: `Marked ${categoryTasks.length} task${categoryTasks.length > 1 ? 's' : ''} in **${cat}** as completed! ✅`,
+        reply: `Marked ${categoryTasks.length} task${categoryTasks.length > 1 ? 's' : ''} in ${cat} as completed! ✅`,
         actionType: 'COMPLETE_ALL',
         taskIds: categoryTasks.map((t) => t.id),
         executedTool: `complete_tasks_tool(category: "${cat}")`,
@@ -512,7 +512,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       thoughts.push(`⚡ Executing update_tasks_tool(dueDate: "${newDate}", count: ${pendingToReschedule.length})`);
       thoughts.push('💾 Mutating SQLite Database records...');
       return {
-        reply: `📅 Rescheduled ${pendingToReschedule.length} task${pendingToReschedule.length > 1 ? 's' : ''} to **${newDate}**!`,
+        reply: `📅 Rescheduled ${pendingToReschedule.length} task${pendingToReschedule.length > 1 ? 's' : ''} to ${newDate}!`,
         actionType: 'UPDATE_TASKS',
         updatedTasks: pendingToReschedule.map((t) => ({ ...t, dueDate: newDate })),
         executedTool: `update_tasks_tool(dueDate: "${newDate}")`,
@@ -545,7 +545,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       thoughts.push(`⚡ Executing update_tasks_tool(priority: "high", count: ${targetTasks.length})`);
       thoughts.push('💾 Mutating SQLite Database records...');
       return {
-        reply: `🔥 Elevated ${targetTasks.length} task${targetTasks.length > 1 ? 's' : ''} to **High Priority**!`,
+        reply: `🔥 Elevated ${targetTasks.length} task${targetTasks.length > 1 ? 's' : ''} to High Priority!`,
         actionType: 'UPDATE_TASKS',
         updatedTasks: targetTasks.map((t) => ({ ...t, priority: 'high', starred: true })),
         executedTool: `update_tasks_tool(priority: "high")`,
@@ -565,7 +565,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       thoughts.push(`⚡ Executing add_subtasks_tool(taskId: "${matchedTask.id}", count: ${generated.length})`);
       thoughts.push('💾 Mutating SQLite Database subtasks table...');
       return {
-        reply: `Generated ${generated.length} checklist steps for **"${matchedTask.title}"**! 📋`,
+        reply: `Generated ${generated.length} checklist steps for "${matchedTask.title}"! 📋`,
         actionType: 'ADD_SUBTASKS',
         taskId: matchedTask.id,
         subtasks: generated,
@@ -586,7 +586,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     const pending = total - completed;
 
     return {
-      reply: `📊 **Real-Time Analytics Summary**:\n• Total Database Tasks: **${total}**\n• Active Pending: **${pending}**\n• Completed: **${completed}**${highPriority > 0 ? `\n• High Priority Pending: **${highPriority}** ⚡` : ''}`,
+      reply: `📊 Real-Time Analytics Summary:\n• Total Database Tasks: ${total}\n• Active Pending: ${pending}\n• Completed: ${completed}${highPriority > 0 ? `\n• High Priority Pending: ${highPriority} ⚡` : ''}`,
       actionType: 'NONE',
       executedTool: 'analytics_summary_tool()',
       thoughts
@@ -640,10 +640,10 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     thoughts.push(`⚡ Executing create_task_tool(title: "${newTask.title}", priority: "${priority}")`);
     thoughts.push('💾 Inserting record into SQLite tasks table...');
 
-    let summaryReply = `Created task **"${newTask.title}"**`;
-    if (category) summaryReply += ` in **${category}**`;
-    if (priority === 'high') summaryReply += ` with **High Priority** ⚡`;
-    if (dueDate) summaryReply += ` due on **${dueDate}**`;
+    let summaryReply = `Created task "${newTask.title}"`;
+    if (category) summaryReply += ` in ${category}`;
+    if (priority === 'high') summaryReply += ` with High Priority ⚡`;
+    if (dueDate) summaryReply += ` due on ${dueDate}`;
     if (newTask.subtasks.length > 0) summaryReply += ` with ${newTask.subtasks.length} subtasks`;
     summaryReply += `! ✨`;
 
@@ -661,7 +661,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   // -------------------------------------------------------------
   thoughts.push('❓ No executable tool matched input string.');
   return {
-    reply: `I didn't recognize a specific command for "${promptText}". 🤔\n\n• To add a task, use **"create"** or **"add"** (e.g. *"Add task review PR tomorrow"*).\n• To delete tasks, say **"delete task [name]"** or **"delete all tasks"**.\n• To clear chat history, say **"clear chat"**.`,
+    reply: `I didn't recognize a specific command for "${promptText}". 🤔\n\n• To add a task, use "create" or "add" (e.g. "Add task review PR tomorrow").\n• To delete tasks, say "delete task [name]" or "delete all tasks".\n• To clear chat history, say "clear chat".`,
     actionType: 'NONE',
     executedTool: 'unmatched_intent_node()',
     thoughts

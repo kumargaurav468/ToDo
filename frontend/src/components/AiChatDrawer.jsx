@@ -33,6 +33,11 @@ const SUGGESTED_PROMPTS = [
   '📅 Postpone work tasks to tomorrow'
 ];
 
+const stripAsterisks = (str) => {
+  if (!str) return '';
+  return str.replace(/\*/g, '');
+};
+
 const INITIAL_MESSAGE = {
   id: 'msg-init',
   sender: 'ai',
@@ -110,7 +115,7 @@ export const AiChatDrawer = ({
       const aiMsg = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
-        text: result.reply,
+        text: stripAsterisks(result.reply),
         executedTool: result.executedTool || 'agent_node()',
         thoughts: result.thoughts || [],
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -288,7 +293,7 @@ export const AiChatDrawer = ({
                     fontSize: '0.875rem'
                   }}
                 >
-                  {msg.text}
+                  {stripAsterisks(msg.text)}
                 </Typography>
 
                 {/* Render Executed Tool Badge if available */}
