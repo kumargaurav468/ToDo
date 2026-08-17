@@ -172,7 +172,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   ) {
     const greetingTime = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
     return {
-      reply: `${greetingTime}! 👋 I'm your TaskFlow AI Copilot. How can I help you today?\n\nYou can say:\n• *"Clear chat"* -> Wipes chat messages\n• *"Delete task prepare presentation"* -> Deletes specific task\n• *"I finished writing the report"* -> Marks task complete\n• *"Remind me to call doctor tomorrow"* -> Creates task`,
+      reply: `${greetingTime}! 👋 I'm your TaskFlow AI Copilot. How can I help you today?\n\nYou can say:\n• *"Add task buy groceries"* -> Creates a task\n• *"Delete task prepare presentation"* -> Deletes specific task\n• *"I finished writing the report"* -> Marks task complete\n• *"Clear chat"* -> Clears history`,
       actionType: 'NONE'
     };
   }
@@ -460,44 +460,66 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 11. NATURAL LANGUAGE TASK CREATION (Fallback for creative prompts)
+  // 11. EXPLICIT TASK CREATION (Requires keywords like 'create', 'add', 'remind', 'schedule')
   // -------------------------------------------------------------
-  let cleanedTitle = text
-    .replace(/^(i need to|i have to|remind me to|add a task to|create a task to|add task|create task|add|create|schedule|set a task to)\s+/i, '')
-    .trim();
+  const isCreateIntent =
+    lower.includes('create') ||
+    lower.includes('add') ||
+    lower.includes('remind') ||
+    lower.includes('schedule') ||
+    lower.includes('new task') ||
+    lower.includes('set a task') ||
+    lower.includes('set task') ||
+    lower.includes('i need to') ||
+    lower.includes('i have to') ||
+    lower.includes('put');
 
-  if (!cleanedTitle) {
-    cleanedTitle = text;
+  if (isCreateIntent) {
+    let cleanedTitle = text
+      .replace(/^(create a task to|add a task to|create task|add task|remind me to|schedule a task for|schedule task|set a task to|set task to|i need to|i have to|new task|create|add|schedule|set)\s+/i, '')
+      .trim();
+
+    if (!cleanedTitle) {
+      cleanedTitle = text;
+    }
+
+    const priority = parseNaturalPriority(text);
+    const category = parseNaturalCategory(text);
+    const dueDate = parseNaturalDate(text);
+    const shouldAddSubtasks = lower.includes('subtask') || lower.includes('breakdown') || lower.includes('steps');
+
+    const newTask = {
+      id: `task-${Date.now()}`,
+      title: cleanedTitle.charAt(0).toUpperCase() + cleanedTitle.slice(1),
+      notes: `Created automatically by TaskFlow AI Assistant.`,
+      category,
+      priority,
+      dueDate,
+      completed: false,
+      starred: priority === 'high',
+      createdAt: new Date().toISOString(),
+      subtasks: shouldAddSubtasks ? generateSmartSubtasks(cleanedTitle) : []
+    };
+
+    let summaryReply = `Created task **"${newTask.title}"**`;
+    if (category) summaryReply += ` in **${category}**`;
+    if (priority === 'high') summaryReply += ` with **High Priority** ⚡`;
+    if (dueDate) summaryReply += ` due on **${dueDate}**`;
+    if (newTask.subtasks.length > 0) summaryReply += ` with ${newTask.subtasks.length} subtasks`;
+    summaryReply += `! ✨`;
+
+    return {
+      reply: summaryReply,
+      actionType: 'CREATE_TASK',
+      task: newTask
+    };
   }
 
-  const priority = parseNaturalPriority(text);
-  const category = parseNaturalCategory(text);
-  const dueDate = parseNaturalDate(text);
-  const shouldAddSubtasks = lower.includes('subtask') || lower.includes('breakdown') || lower.includes('steps');
-
-  const newTask = {
-    id: `task-${Date.now()}`,
-    title: cleanedTitle.charAt(0).toUpperCase() + cleanedTitle.slice(1),
-    notes: `Created automatically by TaskFlow AI Assistant.`,
-    category,
-    priority,
-    dueDate,
-    completed: false,
-    starred: priority === 'high',
-    createdAt: new Date().toISOString(),
-    subtasks: shouldAddSubtasks ? generateSmartSubtasks(cleanedTitle) : []
-  };
-
-  let summaryReply = `Created task **"${newTask.title}"**`;
-  if (category) summaryReply += ` in **${category}**`;
-  if (priority === 'high') summaryReply += ` with **High Priority** ⚡`;
-  if (dueDate) summaryReply += ` due on **${dueDate}**`;
-  if (newTask.subtasks.length > 0) summaryReply += ` with ${newTask.subtasks.length} subtasks`;
-  summaryReply += `! ✨`;
-
+  // -------------------------------------------------------------
+  // 12. UNRECOGNIZED INPUT (Default helpful response - DOES NOT CREATE TASK!)
+  // -------------------------------------------------------------
   return {
-    reply: summaryReply,
-    actionType: 'CREATE_TASK',
-    task: newTask
+    reply: `I didn't quite catch that. 🤔\n\nIf you'd like to create a task, please start with **"create"** or **"add"** (e.g. *"Create task buy groceries"* or *"Add meeting with team tomorrow"*).`,
+    actionType: 'NONE'
   };
 };
