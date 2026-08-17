@@ -11,7 +11,8 @@ import {
   CircularProgress,
   Divider,
   Tooltip,
-  InputAdornment
+  InputAdornment,
+  Alert
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
@@ -25,6 +26,7 @@ import MicOffIcon from '@mui/icons-material/MicOff';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
+import HearingIcon from '@mui/icons-material/Hearing';
 
 const AUTOMATED_SUGGESTIONS = [
   'Add task prepare quarterly presentation tomorrow',
@@ -62,7 +64,11 @@ export const AiChatDrawer = ({
   const [isListening, setIsListening] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [voiceStatus, setVoiceStatus] = useState('');
+  const [voiceErrorNotice, setVoiceErrorNotice] = useState('');
+  
   const recognitionRef = useRef(null);
+  const isListeningRef = useRef(false);
+  const accumulatedSpeechRef = useRef('');
 
   // Real-Time Typewriter Animation Engine
   const [typedPlaceholder, setTypedPlaceholder] = useState('');
@@ -76,7 +82,7 @@ export const AiChatDrawer = ({
   const speakText = (text) => {
     if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
     try {
-      window.speechSynthesis.cancel(); // Stop current speaking
+      window.speechSynthesis.cancel();
       const cleanText = stripAsterisks(text).replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.rate = 1.0;
@@ -87,68 +93,114 @@ export const AiChatDrawer = ({
     }
   };
 
-  // Initialize Web Speech API Recognition
+  // Ultra-Robust Web Speech API Recognition Initialization
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const rec = new SpeechRecognition();
-      rec.continuous = true;
-      rec.interimResults = true;
-      rec.lang = 'en-US';
-
-      rec.onstart = () => {
-        setIsListening(true);
-        setVoiceStatus('🎙️ Live Dictation Active... Speak naturally');
-      };
-
-      rec.onresult = (event) => {
-        let liveTranscript = '';
-        for (let i = 0; i < event.results.length; i++) {
-          liveTranscript += event.results[i][0].transcript;
-        }
-        setInput(liveTranscript);
-      };
-
-      rec.onerror = (event) => {
-        if (event.error !== 'no-speech') {
-          console.error('Speech recognition error:', event.error);
-          setVoiceStatus(`Voice notice: ${event.error}`);
-        }
-      };
-
-      rec.onend = () => {
-        // Automatically restart if user hasn't explicitly stopped listening
-        setIsListening((prev) => {
-          if (prev) {
-            try {
-              rec.start();
-            } catch {
-              // ignore if already started
-            }
-          }
-          return prev;
-        });
-      };
-
-      recognitionRef.current = rec;
+    if (!SpeechRecognition) {
+      setVoiceErrorNotice('Web Speech API is not supported in this browser. Please use Google Chrome or Microsoft Edge for voice dictation.');
+      return;
     }
+
+    const rec = new SpeechRecognition();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    rec.lang = navigator.language || 'en-US';
+
+    rec.onstart = () => {
+      isListeningRef.current = true;
+      setIsListening(true);
+      setVoiceErrorNotice('');
+      setVoiceStatus('🎙️ Listening live... Speak now');
+    };
+
+    rec.onresult = (event) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcriptChunk = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcriptChunk + ' ';
+        } else {
+          interimTranscript += transcriptChunk;
+        }
+      }
+
+      if (finalTranscript) {
+        accumulatedSpeechRef.current += finalTranscript;
+      }
+
+      const combinedText = (accumulatedSpeechRef.current + interimTranscript).trim();
+      if (combinedText) {
+        setInput(combinedText);
+      }
+    };
+
+    rec.onerror = (event) => {
+      console.warn('Speech recognition error event:', event.error);
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        setVoiceErrorNotice('Microphone access blocked. Please allow microphone permission in your browser address bar.');
+        isListeningRef.current = false;
+        setIsListening(false);
+      } else if (event.error === 'no-speech') {
+        setVoiceStatus('🎙️ Listening... (Waiting for voice speech)');
+      } else if (event.error !== 'aborted') {
+        setVoiceStatus(`Voice notice: ${event.error}`);
+      }
+    };
+
+    rec.onend = () => {
+      // Auto-restart if user has not toggled listening off
+      if (isListeningRef.current) {
+        try {
+          rec.start();
+        } catch {
+          // ignore if active
+        }
+      } else {
+        setIsListening(false);
+        setVoiceStatus('');
+      }
+    };
+
+    recognitionRef.current = rec;
+
+    return () => {
+      isListeningRef.current = false;
+      try {
+        rec.abort();
+      } catch {}
+    };
   }, []);
 
   const toggleListening = () => {
     if (!recognitionRef.current) {
-      alert('Speech Recognition is not supported in this browser. Please use Chrome or Edge.');
+      alert('Speech Recognition is not available in your current browser. Please use Chrome or Edge.');
       return;
     }
 
     if (isListening) {
-      recognitionRef.current.stop();
+      isListeningRef.current = false;
       setIsListening(false);
+      setVoiceStatus('');
+      try {
+        recognitionRef.current.stop();
+      } catch {}
     } else {
+      accumulatedSpeechRef.current = '';
+      setInput('');
+      setVoiceErrorNotice('');
+      isListeningRef.current = true;
       try {
         recognitionRef.current.start();
-      } catch {
-        recognitionRef.current.stop();
-        setTimeout(() => recognitionRef.current.start(), 200);
+      } catch (err) {
+        console.error('Error starting speech recognition:', err);
+        // Try restart
+        try {
+          recognitionRef.current.stop();
+          setTimeout(() => recognitionRef.current.start(), 200);
+        } catch {}
       }
     }
   };
@@ -210,8 +262,11 @@ export const AiChatDrawer = ({
     if (!promptText.trim() || loading) return;
 
     if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
+      isListeningRef.current = false;
       setIsListening(false);
+      try {
+        recognitionRef.current.stop();
+      } catch {}
     }
 
     const userMsg = {
@@ -223,6 +278,7 @@ export const AiChatDrawer = ({
 
     setMessages((prev) => [...prev, userMsg]);
     if (!textToSend) setInput('');
+    accumulatedSpeechRef.current = '';
     setLoading(true);
 
     // Simulate real-time step-by-step thinking
@@ -253,7 +309,6 @@ export const AiChatDrawer = ({
       };
 
       setMessages((prev) => [...prev, aiMsg]);
-      // Speak AI response out loud for accessibility
       speakText(cleanReply);
     } catch (err) {
       const errMsg = `Real-Time Agent Error: ${err.message}`;
@@ -359,6 +414,13 @@ export const AiChatDrawer = ({
         </Box>
       </Box>
 
+      {/* Error notice if permission or browser issue */}
+      {voiceErrorNotice && (
+        <Alert severity="warning" onClose={() => setVoiceErrorNotice('')} sx={{ borderRadius: 0, fontSize: '0.8rem' }}>
+          {voiceErrorNotice}
+        </Alert>
+      )}
+
       {/* Voice Status Indicator Banner when listening */}
       {isListening && (
         <Box
@@ -374,7 +436,8 @@ export const AiChatDrawer = ({
         >
           <Typography variant="caption" fontWeight={700} color="error" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
-            {voiceStatus || '🎙️ Listening... Speak hands-free'}
+            <HearingIcon sx={{ fontSize: 16 }} />
+            {voiceStatus || '🎙️ Listening... Speak clearly into microphone'}
           </Typography>
           <IconButton size="small" onClick={toggleListening} color="error">
             <MicOffIcon fontSize="small" />
@@ -505,18 +568,20 @@ export const AiChatDrawer = ({
         }}
       >
         {/* Voice Dictation Microphone Button */}
-        <Tooltip title={isListening ? 'Stop Voice Dictation' : 'Click to Speak Command (Voice Assistant)'}>
+        <Tooltip title={isListening ? 'Stop Voice Dictation' : 'Click to Speak Command (Voice Dictation)'}>
           <IconButton
             onClick={toggleListening}
             color={isListening ? 'error' : 'secondary'}
             sx={{
-              bgcolor: isListening ? 'rgba(239, 68, 68, 0.2)' : 'rgba(168, 85, 247, 0.1)',
-              border: '1px solid',
-              borderColor: isListening ? 'error.main' : 'rgba(168, 85, 247, 0.4)',
+              bgcolor: isListening ? 'rgba(239, 68, 68, 0.25)' : 'rgba(168, 85, 247, 0.12)',
+              border: '1.5px solid',
+              borderColor: isListening ? 'error.main' : 'rgba(168, 85, 247, 0.5)',
               transition: 'all 0.2s ease',
               animation: isListening ? 'pulse 1s infinite' : 'none',
+              boxShadow: isListening ? '0 0 14px rgba(239, 68, 68, 0.5)' : 'none',
               '&:hover': {
-                bgcolor: isListening ? 'rgba(239, 68, 68, 0.3)' : 'rgba(168, 85, 247, 0.2)'
+                bgcolor: isListening ? 'rgba(239, 68, 68, 0.35)' : 'rgba(168, 85, 247, 0.25)',
+                transform: 'scale(1.08)'
               }
             }}
           >
@@ -525,11 +590,11 @@ export const AiChatDrawer = ({
         </Tooltip>
 
         <TextField
-          placeholder={typedPlaceholder ? `${typedPlaceholder}|` : 'Speak or type a command...'}
+          placeholder={isListening ? '🎙️ Listening... speak now' : (typedPlaceholder ? `${typedPlaceholder}|` : 'Speak or type a command...')}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onFocus={() => {
-            if (!input) {
+            if (!input && !isListening) {
               handleApplyAutomatedSuggestion();
             }
           }}
@@ -566,7 +631,8 @@ export const AiChatDrawer = ({
             '& .MuiOutlinedInput-root': {
               borderRadius: 3.5,
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              background: 'rgba(99, 102, 241, 0.03)',
+              background: isListening ? 'rgba(239, 68, 68, 0.05)' : 'rgba(99, 102, 241, 0.03)',
+              borderColor: isListening ? 'error.main' : undefined,
               '&:hover': {
                 borderColor: 'primary.main',
                 boxShadow: '0 0 12px rgba(99, 102, 241, 0.25)'
