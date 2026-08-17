@@ -7,7 +7,7 @@ import {
   IconButton,
   Tooltip,
   Avatar,
-  Badge
+  Chip
 } from '@mui/material';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -19,6 +19,7 @@ import TimerIcon from '@mui/icons-material/Timer';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 
 export const Header = ({
   user,
@@ -99,24 +100,25 @@ export const Header = ({
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <Tooltip title="AI Task Assistant (Automate Tasks)">
+        <Tooltip title="Voice Assistant & Hands-Free Task Control (Accessibility)">
           <Button
             variant="outlined"
             onClick={onOpenAiAssistant}
-            startIcon={<AutoAwesomeIcon sx={{ color: '#a855f7' }} />}
+            startIcon={<RecordVoiceOverIcon sx={{ color: '#a855f7' }} />}
             sx={{
               borderRadius: 3,
               borderColor: 'rgba(168, 85, 247, 0.5)',
               background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.1) 100%)',
               textTransform: 'none',
               fontWeight: 700,
+              boxShadow: '0 0 12px rgba(168, 85, 247, 0.2)',
               '&:hover': {
                 borderColor: '#a855f7',
                 background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.2) 100%)'
               }
             }}
           >
-            AI Assistant
+            Voice AI Assistant
           </Button>
         </Tooltip>
 

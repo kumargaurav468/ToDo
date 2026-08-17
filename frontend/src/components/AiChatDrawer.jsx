@@ -20,6 +20,11 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import MicIcon from '@mui/icons-material/Mic';
+import MicOffIcon from '@mui/icons-material/MicOff';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import VolumeOffIcon from '@mui/icons-material/VolumeOff';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 
 const AUTOMATED_SUGGESTIONS = [
   'Add task prepare quarterly presentation tomorrow',
@@ -38,7 +43,7 @@ const stripAsterisks = (str) => {
 const INITIAL_MESSAGE = {
   id: 'msg-init',
   sender: 'ai',
-  text: "Hello! I am your Real-Time TaskFlow AI Agent 🤖. How can I assist your productivity workflow today?\n\nYou can issue autonomous commands to create tasks ('Add task report tomorrow'), delete tasks ('Delete completed tasks'), clear chat history ('Clear chat'), or postpone dates!",
+  text: "Hello! I am your Real-Time Accessibility Voice Agent 🤖🎙️. How can I assist your hands-free productivity today?\n\nYou can click the microphone button or speak your command (e.g. 'Add task report tomorrow', 'Delete completed tasks', 'How are you?'), and I will respond in voice!",
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 };
 
@@ -53,6 +58,12 @@ export const AiChatDrawer = ({
   const [loading, setLoading] = useState(false);
   const [currentThoughtStep, setCurrentThoughtStep] = useState('');
 
+  // Voice Assistant Accessibility State
+  const [isListening, setIsListening] = useState(false);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+  const [voiceStatus, setVoiceStatus] = useState('');
+  const recognitionRef = useRef(null);
+
   // Real-Time Typewriter Animation Engine
   const [typedPlaceholder, setTypedPlaceholder] = useState('');
   const [suggestionIndex, setSuggestionIndex] = useState(0);
@@ -60,6 +71,77 @@ export const AiChatDrawer = ({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const messagesEndRef = useRef(null);
+
+  // Text-To-Speech Read Aloud Helper
+  const speakText = (text) => {
+    if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel(); // Stop current speaking
+      const cleanText = stripAsterisks(text).replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.error('Speech synthesis error:', err);
+    }
+  };
+
+  // Initialize Web Speech API Recognition
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const rec = new SpeechRecognition();
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.lang = 'en-US';
+
+      rec.onstart = () => {
+        setIsListening(true);
+        setVoiceStatus('🎙️ Listening... Speak now');
+      };
+
+      rec.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setInput(transcript);
+      };
+
+      rec.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        setVoiceStatus(`Voice error: ${event.error}`);
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+        setVoiceStatus('');
+      };
+
+      recognitionRef.current = rec;
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert('Speech Recognition is not supported in this browser. Please use Chrome or Edge.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+      } catch {
+        recognitionRef.current.stop();
+        setTimeout(() => recognitionRef.current.start(), 200);
+      }
+    }
+  };
 
   // Real-Time Typewriter Typing Effect Logic
   useEffect(() => {
@@ -103,6 +185,7 @@ export const AiChatDrawer = ({
   };
 
   const handleClearChat = () => {
+    window.speechSynthesis?.cancel();
     setMessages([
       {
         ...INITIAL_MESSAGE,
@@ -115,6 +198,11 @@ export const AiChatDrawer = ({
   const handleSend = async (textToSend) => {
     const promptText = textToSend || input;
     if (!promptText.trim() || loading) return;
+
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
 
     const userMsg = {
       id: `user-${Date.now()}`,
@@ -145,23 +233,30 @@ export const AiChatDrawer = ({
       setCurrentThoughtStep('✨ Synthesizing response...');
       await new Promise((r) => setTimeout(r, 150));
 
+      const cleanReply = stripAsterisks(result.reply);
+
       const aiMsg = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
-        text: stripAsterisks(result.reply),
+        text: cleanReply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
+
       setMessages((prev) => [...prev, aiMsg]);
+      // Speak AI response out loud for accessibility
+      speakText(cleanReply);
     } catch (err) {
+      const errMsg = `Real-Time Agent Error: ${err.message}`;
       setMessages((prev) => [
         ...prev,
         {
           id: `ai-err-${Date.now()}`,
           sender: 'ai',
-          text: `Real-Time Agent Error: ${err.message}`,
+          text: errMsg,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
+      speakText(errMsg);
     } finally {
       setLoading(false);
       setCurrentThoughtStep('');
@@ -184,7 +279,7 @@ export const AiChatDrawer = ({
         }
       }}
     >
-      {/* Drawer Header with Glowing Real-Time Agent Badge */}
+      {/* Drawer Header with Voice Accessibility Controls */}
       <Box
         sx={{
           p: 2.5,
@@ -211,9 +306,9 @@ export const AiChatDrawer = ({
           </Avatar>
           <Box>
             <Typography variant="subtitle1" fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              TaskFlow AI Agent
+              TaskFlow AI Voice Agent
               <Chip
-                label="LIVE AGENT"
+                label="LIVE VOICE"
                 size="small"
                 color="success"
                 sx={{
@@ -231,12 +326,18 @@ export const AiChatDrawer = ({
                 }}
               />
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Real-Time Autonomous Copilot
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <RecordVoiceOverIcon sx={{ fontSize: 13, color: '#a855f7' }} /> Accessibility Voice Assistant
             </Typography>
           </Box>
         </Box>
+
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Tooltip title={isVoiceEnabled ? 'Disable Voice Read-Aloud' : 'Enable Voice Read-Aloud'}>
+            <IconButton onClick={() => setIsVoiceEnabled(!isVoiceEnabled)} size="small" color={isVoiceEnabled ? 'secondary' : 'default'}>
+              {isVoiceEnabled ? <VolumeUpIcon fontSize="small" /> : <VolumeOffIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Clear Chat History">
             <IconButton onClick={handleClearChat} size="small">
               <DeleteSweepIcon fontSize="small" />
@@ -247,6 +348,29 @@ export const AiChatDrawer = ({
           </IconButton>
         </Box>
       </Box>
+
+      {/* Voice Status Indicator Banner when listening */}
+      {isListening && (
+        <Box
+          sx={{
+            px: 2,
+            py: 1,
+            bgcolor: 'rgba(239, 68, 68, 0.15)',
+            borderBottom: '1px solid rgba(239, 68, 68, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <Typography variant="caption" fontWeight={700} color="error" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
+            {voiceStatus || '🎙️ Listening... Speak hands-free'}
+          </Typography>
+          <IconButton size="small" onClick={toggleListening} color="error">
+            <MicOffIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      )}
 
       {/* Message History */}
       <Box
@@ -307,6 +431,17 @@ export const AiChatDrawer = ({
                 >
                   {stripAsterisks(msg.text)}
                 </Typography>
+
+                {/* Read Aloud Button for AI Message Bubbles */}
+                {msg.sender === 'ai' && (
+                  <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                    <Tooltip title="Read Message Aloud">
+                      <IconButton size="small" onClick={() => speakText(msg.text)} sx={{ p: 0.5, opacity: 0.7, '&:hover': { opacity: 1 } }}>
+                        <VolumeUpIcon style={{ fontSize: 14, color: '#a855f7' }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                )}
               </Paper>
               <Typography
                 variant="caption"
@@ -344,7 +479,7 @@ export const AiChatDrawer = ({
 
       <Divider />
 
-      {/* Input Box with Glowing Focus & Typewriter Placeholder */}
+      {/* Input Box with Voice Microphone & Typewriter Placeholder */}
       <Box
         component="form"
         onSubmit={(e) => {
@@ -359,8 +494,28 @@ export const AiChatDrawer = ({
           bgcolor: 'background.paper'
         }}
       >
+        {/* Voice Dictation Microphone Button */}
+        <Tooltip title={isListening ? 'Stop Voice Dictation' : 'Click to Speak Command (Voice Assistant)'}>
+          <IconButton
+            onClick={toggleListening}
+            color={isListening ? 'error' : 'secondary'}
+            sx={{
+              bgcolor: isListening ? 'rgba(239, 68, 68, 0.2)' : 'rgba(168, 85, 247, 0.1)',
+              border: '1px solid',
+              borderColor: isListening ? 'error.main' : 'rgba(168, 85, 247, 0.4)',
+              transition: 'all 0.2s ease',
+              animation: isListening ? 'pulse 1s infinite' : 'none',
+              '&:hover': {
+                bgcolor: isListening ? 'rgba(239, 68, 68, 0.3)' : 'rgba(168, 85, 247, 0.2)'
+              }
+            }}
+          >
+            {isListening ? <MicOffIcon fontSize="small" /> : <MicIcon fontSize="small" />}
+          </IconButton>
+        </Tooltip>
+
         <TextField
-          placeholder={typedPlaceholder ? `${typedPlaceholder}|` : "Type a command..."}
+          placeholder={typedPlaceholder ? `${typedPlaceholder}|` : 'Speak or type a command...'}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onFocus={() => {
