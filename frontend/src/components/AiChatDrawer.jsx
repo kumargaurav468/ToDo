@@ -10,13 +10,15 @@ import {
   Chip,
   Paper,
   CircularProgress,
-  Divider
+  Divider,
+  Tooltip
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 
 const SUGGESTED_PROMPTS = [
   '👋 Good morning, what should I focus on next?',
@@ -26,6 +28,13 @@ const SUGGESTED_PROMPTS = [
   '🧹 Clean up my completed tasks'
 ];
 
+const INITIAL_MESSAGE = {
+  id: 'msg-init',
+  sender: 'ai',
+  text: "Hello! I'm your TaskFlow AI Copilot 🤖. You can talk to me naturally! Try saying things like:\n\n• *'I just finished writing the report'*\n• *'Remind me to buy groceries tonight'*\n• *'What should I work on next?'*\n• *'Push my work tasks to tomorrow'*",
+  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+};
+
 export const AiChatDrawer = ({
   isOpen,
   onClose,
@@ -33,14 +42,7 @@ export const AiChatDrawer = ({
   tasks = []
 }) => {
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState([
-    {
-      id: 'msg-init',
-      sender: 'ai',
-      text: "Hello! I'm your TaskFlow AI Copilot 🤖. You can talk to me naturally! Try saying things like:\n\n• *'I just finished writing the report'*\n• *'Remind me to buy groceries tonight'*\n• *'What should I work on next?'*\n• *'Push my work tasks to tomorrow'*",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
+  const [messages, setMessages] = useState([INITIAL_MESSAGE]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
@@ -53,6 +55,16 @@ export const AiChatDrawer = ({
       scrollToBottom();
     }
   }, [messages, isOpen]);
+
+  const handleClearChat = () => {
+    setMessages([
+      {
+        ...INITIAL_MESSAGE,
+        id: `msg-init-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
+  };
 
   const handleSend = async (textToSend) => {
     const promptText = textToSend || input;
@@ -141,9 +153,16 @@ export const AiChatDrawer = ({
             </Typography>
           </Box>
         </Box>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Tooltip title="Clear Chat History">
+            <IconButton onClick={handleClearChat} size="small">
+              <DeleteSweepIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <IconButton onClick={onClose} size="small">
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </Box>
 
       {/* Suggested Natural Language Prompts */}
