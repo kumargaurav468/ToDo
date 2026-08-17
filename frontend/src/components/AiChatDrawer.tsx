@@ -371,9 +371,9 @@ export const AiChatDrawer = ({
           </Avatar>
           <Box>
             <Typography variant="subtitle1" fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              TaskFlow AI Voice Agent
+              TaskFlow AI Agent
               <Chip
-                label="LIVE VOICE"
+                label="LIVE AGENT"
                 size="small"
                 color="success"
                 sx={{

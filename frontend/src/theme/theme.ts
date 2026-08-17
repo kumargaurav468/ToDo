@@ -1,6 +1,6 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme, ThemeOptions } from '@mui/material/styles';
 
-export const getAppTheme = (mode = 'dark') => {
+export const getAppTheme = (mode: 'dark' | 'light' = 'dark') => {
   const isDark = mode === 'dark';
 
   return createTheme({
@@ -117,5 +117,5 @@ export const getAppTheme = (mode = 'dark') => {
         }
       }
     }
-  });
+  } as ThemeOptions);
 };

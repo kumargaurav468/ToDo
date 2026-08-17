@@ -5,7 +5,7 @@ import {
   apiUpdateTheme
 } from '../services/api';
 
-export const initialSampleTasks = [];
+export const initialSampleTasks: any[] = [];
 
 /**
  * SQL-backed session management (No localStorage used!)
@@ -20,7 +20,7 @@ export const loadCurrentUserFromStorage = async () => {
   }
 };
 
-export const saveCurrentUserToStorage = async (user) => {
+export const saveCurrentUserToStorage = async (user: any) => {
   try {
     if (user && user.id) {
       await apiSaveSession(user.id);
@@ -44,7 +44,7 @@ export const loadThemeFromStorage = async () => {
   }
 };
 
-export const saveThemeToStorage = async (theme, userId = null) => {
+export const saveThemeToStorage = async (theme: string, userId: string | null = null) => {
   try {
     await apiUpdateTheme(userId, theme);
   } catch (error) {

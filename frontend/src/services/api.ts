@@ -7,7 +7,7 @@ export const apiGetSession = async () => {
   return data; // returns { user, theme }
 };
 
-export const apiSaveSession = async (userId) => {
+export const apiSaveSession = async (userId: string) => {
   const res = await fetch('/api/session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -31,7 +31,7 @@ export const apiDeleteSession = async () => {
   return data;
 };
 
-export const apiUpdateTheme = async (userId, theme) => {
+export const apiUpdateTheme = async (userId: string | null, theme: string) => {
   const res = await fetch('/api/user/theme', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -44,7 +44,7 @@ export const apiUpdateTheme = async (userId, theme) => {
   return data.theme;
 };
 
-export const apiLogin = async (email, password) => {
+export const apiLogin = async (email: string, password: string) => {
   const res = await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -58,7 +58,7 @@ export const apiLogin = async (email, password) => {
   return data.user;
 };
 
-export const apiRegister = async (name, email, password) => {
+export const apiRegister = async (name: string, email: string, password: string) => {
   const res = await fetch('/api/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -72,7 +72,7 @@ export const apiRegister = async (name, email, password) => {
   return data.user;
 };
 
-export const apiGetTasks = async (userId) => {
+export const apiGetTasks = async (userId: string) => {
   const res = await fetch(`/api/tasks?userId=${encodeURIComponent(userId)}`);
   const data = await res.json();
   if (!res.ok) {
@@ -81,7 +81,7 @@ export const apiGetTasks = async (userId) => {
   return data.tasks;
 };
 
-export const apiSaveTask = async (userId, task) => {
+export const apiSaveTask = async (userId: string, task: any) => {
   const res = await fetch('/api/tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -95,7 +95,7 @@ export const apiSaveTask = async (userId, task) => {
   return data.task;
 };
 
-export const apiDeleteTask = async (userId, taskId) => {
+export const apiDeleteTask = async (userId: string, taskId: string) => {
   const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}?userId=${encodeURIComponent(userId)}`, {
     method: 'DELETE'
   });
