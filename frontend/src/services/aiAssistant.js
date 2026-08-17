@@ -153,7 +153,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   ) {
     const greetingTime = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
     return {
-      reply: `${greetingTime}! 👋 I'm your TaskFlow AI Copilot. You can talk to me naturally like a human assistant!\n\nFor example, say:\n• *"I just finished writing the report"* -> Marks task complete\n• *"Remind me to call the doctor tomorrow at high priority"* -> Creates task\n• *"I'm super busy, postpone work tasks to next week"* -> Reschedules dates\n• *"What should I focus on next?"* -> Gives smart recommendation`,
+      reply: `${greetingTime}! 👋 I'm your TaskFlow AI Copilot. You can talk to me naturally like a human assistant!\n\nFor example, say:\n• *"Delete task prepare presentation"* -> Deletes specific task\n• *"I finished writing the report"* -> Marks task complete\n• *"Remind me to call doctor tomorrow"* -> Creates task\n• *"Clear all completed tasks"* -> Wipes finished tasks`,
       actionType: 'NONE'
     };
   }
@@ -169,7 +169,70 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 3. "WHAT SHOULD I WORK ON NEXT?" / NEXT FOCUS RECOMMENDATION
+  // 3. TASK DELETION (Specific Task, Category Tasks, or Completed Tasks)
+  // -------------------------------------------------------------
+  if (
+    lower.includes('delete') ||
+    lower.includes('remove') ||
+    lower.includes('trash') ||
+    lower.includes('erase') ||
+    lower.includes('clear') ||
+    lower.includes('drop task')
+  ) {
+    // 3a. Delete completed tasks
+    if (lower.includes('completed') || lower.includes('finished') || lower.includes('done')) {
+      const completedTasks = existingTasks.filter((t) => t.completed);
+      if (completedTasks.length === 0) {
+        return {
+          reply: "You don't have any completed tasks to delete right now!",
+          actionType: 'NONE'
+        };
+      }
+      return {
+        reply: `Deleted ${completedTasks.length} completed task${completedTasks.length > 1 ? 's' : ''} from your database! 🗑️`,
+        actionType: 'DELETE_TASKS',
+        taskIds: completedTasks.map((t) => t.id)
+      };
+    }
+
+    // 3b. Delete category tasks (e.g., "delete all work tasks", "remove personal tasks")
+    const matchedCategory = parseNaturalCategory(promptText);
+    if (
+      lower.includes('all work') ||
+      lower.includes('all personal') ||
+      lower.includes('all health') ||
+      lower.includes('all study') ||
+      lower.includes('all shopping') ||
+      lower.includes('all finance') ||
+      lower.includes('category')
+    ) {
+      const catTasks = existingTasks.filter((t) => t.category?.toLowerCase() === matchedCategory.toLowerCase());
+      if (catTasks.length > 0) {
+        return {
+          reply: `Deleted ${catTasks.length} task${catTasks.length > 1 ? 's' : ''} in **${matchedCategory}** category! 🗑️`,
+          actionType: 'DELETE_TASKS',
+          taskIds: catTasks.map((t) => t.id)
+        };
+      }
+    }
+
+    // 3c. Delete specific task matching title
+    const targetTask = existingTasks.find((t) => {
+      const titleLower = t.title.toLowerCase();
+      return lower.includes(titleLower) || titleLower.split(' ').some((word) => word.length > 3 && lower.includes(word));
+    });
+
+    if (targetTask) {
+      return {
+        reply: `Deleted task **"${targetTask.title}"** from your task list! 🗑️`,
+        actionType: 'DELETE_TASKS',
+        taskIds: [targetTask.id]
+      };
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 4. "WHAT SHOULD I WORK ON NEXT?" / RECOMMENDATION
   // -------------------------------------------------------------
   if (
     lower.includes('what should i do') ||
@@ -197,7 +260,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 4. NATURAL LANGUAGE TASK COMPLETION (e.g. "I finished...", "Done with...", "Mark ... complete")
+  // 5. TASK COMPLETION (e.g. "I finished...", "Done with...", "Mark ... complete")
   // -------------------------------------------------------------
   if (
     lower.includes('finished') ||
@@ -208,7 +271,6 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     lower.includes('mark complete') ||
     lower.includes('wrap up')
   ) {
-    // 4a. Complete all
     if (lower.includes('everything') || lower.includes('all tasks') || lower.includes('complete all')) {
       const activeTasks = existingTasks.filter((t) => !t.completed);
       if (activeTasks.length === 0) {
@@ -224,7 +286,6 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       };
     }
 
-    // 4b. Find matching task by keywords in user prompt
     const targetTask = existingTasks.find((t) => {
       const titleLower = t.title.toLowerCase();
       return lower.includes(titleLower) || titleLower.split(' ').some((word) => word.length > 3 && lower.includes(word));
@@ -244,7 +305,6 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
       };
     }
 
-    // 4c. Complete by category
     const cat = parseNaturalCategory(promptText);
     const categoryTasks = existingTasks.filter((t) => !t.completed && t.category?.toLowerCase() === cat.toLowerCase());
     if (categoryTasks.length > 0) {
@@ -257,7 +317,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 5. RESCHEDULING / POSTPONING (e.g. "I'm busy, push work to tomorrow", "delay health tasks")
+  // 6. RESCHEDULING / POSTPONING (e.g. "I'm busy, push work to tomorrow")
   // -------------------------------------------------------------
   if (
     lower.includes('postpone') ||
@@ -287,7 +347,7 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
   }
 
   // -------------------------------------------------------------
-  // 6. PRIORITY ELEVATION (e.g. "make work tasks urgent", "promote presentation to high priority")
+  // 7. PRIORITY ELEVATION
   // -------------------------------------------------------------
   if (
     lower.includes('urgent') ||
@@ -310,20 +370,6 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
         reply: `🔥 Elevated ${targetTasks.length} task${targetTasks.length > 1 ? 's' : ''} to **High Priority**!`,
         actionType: 'UPDATE_TASKS',
         updatedTasks: targetTasks.map((t) => ({ ...t, priority: 'high', starred: true }))
-      };
-    }
-  }
-
-  // -------------------------------------------------------------
-  // 7. CLEARING / DELETING FINISHED ITEMS
-  // -------------------------------------------------------------
-  if (lower.includes('clear') || lower.includes('clean up') || lower.includes('delete completed') || lower.includes('remove done')) {
-    const completedTasks = existingTasks.filter((t) => t.completed);
-    if (completedTasks.length > 0) {
-      return {
-        reply: `Cleared ${completedTasks.length} finished task${completedTasks.length > 1 ? 's' : ''} from your workspace! 🧹`,
-        actionType: 'DELETE_COMPLETED',
-        taskIds: completedTasks.map((t) => t.id)
       };
     }
   }

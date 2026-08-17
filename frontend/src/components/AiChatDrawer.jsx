@@ -22,16 +22,16 @@ import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 
 const SUGGESTED_PROMPTS = [
   '👋 Good morning, what should I focus on next?',
+  '🗑️ Delete task prepare presentation',
   '✅ I just finished writing the report',
-  '📅 I am busy today, postpone work tasks to tomorrow',
-  '🔥 Make work tasks top priority',
+  '📅 Postpone work tasks to tomorrow',
   '🧹 Clean up my completed tasks'
 ];
 
 const INITIAL_MESSAGE = {
   id: 'msg-init',
   sender: 'ai',
-  text: "Hello! I'm your TaskFlow AI Copilot 🤖. You can talk to me naturally! Try saying things like:\n\n• *'I just finished writing the report'*\n• *'Remind me to buy groceries tonight'*\n• *'What should I work on next?'*\n• *'Push my work tasks to tomorrow'*",
+  text: "Hello! I'm your TaskFlow AI Copilot 🤖. You can ask me to create tasks, delete tasks (e.g. 'Delete task report'), mark items completed, or reschedule dates!",
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 };
 
@@ -294,7 +294,7 @@ export const AiChatDrawer = ({
         }}
       >
         <TextField
-          placeholder="Talk naturally: 'I finished writing report'..."
+          placeholder="Ask AI: 'Delete task report' or 'Delete work tasks'..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           fullWidth
