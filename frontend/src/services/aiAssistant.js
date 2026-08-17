@@ -98,7 +98,6 @@ export const generateSmartSubtasks = (title) => {
     ];
   }
 
-  // Default subtasks
   return [
     { id: `sub-${Date.now()}-1`, title: 'Initial planning & research', completed: false },
     { id: `sub-${Date.now()}-2`, title: 'Execute main task action items', completed: false },
@@ -112,7 +111,65 @@ export const generateSmartSubtasks = (title) => {
 export const processAiPrompt = async (promptText, existingTasks = []) => {
   const lower = promptText.toLowerCase().trim();
 
-  // 1. CLEAR / DELETE COMPLETED TASKS
+  // 1. MARK TASKS AS COMPLETED
+  if (
+    lower.includes('complete') ||
+    lower.includes('mark done') ||
+    lower.includes('finish') ||
+    lower.includes('check off') ||
+    lower.includes('done')
+  ) {
+    // 1a. Complete all tasks
+    if (lower.includes('complete all') || lower.includes('finish all') || lower.includes('mark all')) {
+      const activeTasks = existingTasks.filter((t) => !t.completed);
+      if (activeTasks.length === 0) {
+        return {
+          reply: "All your tasks are already marked as completed! Great job! 🎉",
+          actionType: 'NONE'
+        };
+      }
+      return {
+        reply: `Marked all ${activeTasks.length} pending task${activeTasks.length > 1 ? 's' : ''} as completed! 🎉`,
+        actionType: 'COMPLETE_ALL',
+        taskIds: activeTasks.map((t) => t.id)
+      };
+    }
+
+    // 1b. Complete specific task matching title keyword
+    const targetTask = existingTasks.find((t) => {
+      const titleLower = t.title.toLowerCase();
+      return lower.includes(titleLower) || titleLower.split(' ').some((word) => word.length > 3 && lower.includes(word));
+    });
+
+    if (targetTask) {
+      if (targetTask.completed) {
+        return {
+          reply: `Task **"${targetTask.title}"** is already marked as completed! ✅`,
+          actionType: 'NONE'
+        };
+      }
+      return {
+        reply: `Marked task **"${targetTask.title}"** as completed! ✅`,
+        actionType: 'COMPLETE_ALL',
+        taskIds: [targetTask.id]
+      };
+    }
+
+    // 1c. Complete tasks by category or priority
+    const matchedCategory = parseCategory(promptText);
+    const categoryTasks = existingTasks.filter(
+      (t) => !t.completed && t.category?.toLowerCase() === matchedCategory.toLowerCase()
+    );
+    if (categoryTasks.length > 0) {
+      return {
+        reply: `Marked ${categoryTasks.length} task${categoryTasks.length > 1 ? 's' : ''} in **${matchedCategory}** as completed! ✅`,
+        actionType: 'COMPLETE_ALL',
+        taskIds: categoryTasks.map((t) => t.id)
+      };
+    }
+  }
+
+  // 2. CLEAR / DELETE COMPLETED TASKS
   if (lower.includes('clear completed') || lower.includes('delete completed') || lower.includes('remove finished') || lower.includes('delete finished')) {
     const completedTasks = existingTasks.filter((t) => t.completed);
     if (completedTasks.length === 0) {
@@ -128,25 +185,8 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     };
   }
 
-  // 2. MARK ALL AS COMPLETED
-  if (lower.includes('complete all') || lower.includes('mark all complete') || lower.includes('finish all')) {
-    const activeTasks = existingTasks.filter((t) => !t.completed);
-    if (activeTasks.length === 0) {
-      return {
-        reply: "All your tasks are already completed! Great job! 🎉",
-        actionType: 'NONE'
-      };
-    }
-    return {
-      reply: `Marked all ${activeTasks.length} pending task${activeTasks.length > 1 ? 's' : ''} as completed! 🎉`,
-      actionType: 'COMPLETE_ALL',
-      taskIds: activeTasks.map((t) => t.id)
-    };
-  }
-
   // 3. GENERATE SUBTASKS FOR EXISTING TASK
   if (lower.includes('subtask') || lower.includes('break down') || lower.includes('split task')) {
-    // Try to match an existing task title
     const matchedTask = existingTasks.find((t) => lower.includes(t.title.toLowerCase()));
     if (matchedTask) {
       const generated = generateSmartSubtasks(matchedTask.title);
@@ -176,16 +216,14 @@ export const processAiPrompt = async (promptText, existingTasks = []) => {
     };
   }
 
-  // 5. CREATE NEW TASK (Default intent parser for creation prompts)
-  // Clean prompt text from triggers like "add task", "create a task", "remind me to", etc.
+  // 5. CREATE NEW TASK
   let cleanedTitle = promptText
     .replace(/^(add task|create task|add|create|remind me to|schedule|make a task to|set a task to)\s+/i, '')
     .trim();
 
-  // If prompt was very short like "hi" or "help"
   if (cleanedTitle.length < 3 && (lower.includes('hi') || lower.includes('hello') || lower.includes('help'))) {
     return {
-      reply: "Hello! I'm your TaskFlow AI Assistant 🤖. I can help you automate your task workflow!\n\nTry commands like:\n• *'Add a high priority work task for client presentation due tomorrow'*\n• *'Break down task Build Landing Page into subtasks'*\n• *'Mark all tasks as completed'*\n• *'Clear completed tasks'*\n• *'Summarize my productivity'*",
+      reply: "Hello! I'm your TaskFlow AI Assistant 🤖. How can I assist you?\n\nCommands you can try:\n• *'Mark task [name] as completed'*\n• *'Complete all work tasks'*\n• *'Add a high priority task due tomorrow'*\n• *'Break down task Launch App into subtasks'*\n• *'Clear completed tasks'*",
       actionType: 'NONE'
     };
   }

@@ -144,11 +144,15 @@ export const TaskModal = ({ isOpen, onClose, onSave, taskToEdit }) => {
           </Grid>
 
           <TextField
-            label="Due Date"
+            label="Due Date (Select from Calendar)"
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
+            inputProps={{
+              onKeyDown: (e) => e.preventDefault(),
+              onClick: (e) => e.target.showPicker && e.target.showPicker()
+            }}
             fullWidth
           />
 

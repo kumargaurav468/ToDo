@@ -17,14 +17,11 @@ import SendIcon from '@mui/icons-material/Send';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
-import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
-import AddTaskIcon from '@mui/icons-material/AddTask';
-import ChecklistIcon from '@mui/icons-material/Checklist';
 
 const SUGGESTED_PROMPTS = [
-  '⚡ Create a high priority work task due tomorrow',
-  '📋 Break down "Build Landing Page" into subtasks',
-  '📊 Summarize my productivity & task status',
+  '✅ Complete all work tasks',
+  '⚡ Create a high priority task due tomorrow',
+  '📋 Break down task into subtasks',
   '🧹 Clear all completed tasks'
 ];
 
@@ -39,7 +36,7 @@ export const AiChatDrawer = ({
     {
       id: 'msg-init',
       sender: 'ai',
-      text: "Hello! I'm your TaskFlow AI Assistant 🤖. How can I help automate your workflow today? Try asking me to create tasks, generate subtasks, or summarize your progress!",
+      text: "Hello! I'm your TaskFlow AI Assistant 🤖. You can ask me to create tasks, mark tasks as completed (e.g. 'Mark Work tasks complete'), generate subtask checklists, or clear finished items!",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -72,7 +69,6 @@ export const AiChatDrawer = ({
     setLoading(true);
 
     try {
-      // Execute AI action callback passed from App.jsx
       const result = await onExecuteAiAction(promptText);
 
       const aiMsg = {
@@ -278,7 +274,7 @@ export const AiChatDrawer = ({
         }}
       >
         <TextField
-          placeholder="Ask AI to create tasks, generate steps..."
+          placeholder="Ask AI to complete tasks, create items..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           fullWidth
